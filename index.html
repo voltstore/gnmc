@@ -22,6 +22,28 @@
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
+  <script>
+    // Catch any error that occurs before React mounts and surface it instead of leaving the loading screen forever
+    window.addEventListener('error', function (e) {
+      var root = document.getElementById('root');
+      if (root && !root.dataset.mounted) {
+        root.innerHTML = '<div style="position:fixed;inset:0;padding:24px;color:#ff6b6b;font:12px/1.5 monospace;background:#0a0a0f;overflow:auto;"><h1 style="font:600 18px/1.2 serif;color:#d4af37;margin-bottom:12px;">init error</h1><pre style="white-space:pre-wrap;">' +
+          ((e && (e.message || e.error && e.error.message)) || 'unknown') +
+          '\n' + ((e && e.filename) || '') + ':' + ((e && e.lineno) || '') + '</pre><p style="opacity:.6;margin-top:16px;">Open the console for the full stack trace.</p></div>';
+      }
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+      console.warn('[gnmc] unhandled rejection', e.reason);
+    });
+    // 6-second emergency fallback — if React hasn't claimed the root by then, show a recoverable message
+    setTimeout(function () {
+      var root = document.getElementById('root');
+      if (root && !root.dataset.mounted) {
+        root.innerHTML = '<div style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center;color:#f0f0f5;font:14px/1.5 system-ui;background:#0a0a0f;"><div style="font:600 20px Cinzel,serif;color:#d4af37;letter-spacing:.1em;">gnmc</div><p style="opacity:.7;max-width:420px;">The site took too long to load. This is usually a CDN or network issue. Hard-refresh the page (Ctrl+Shift+R).</p><button onclick="location.reload(true)" style="padding:10px 20px;border-radius:10px;background:#d4af37;color:#0a0a0f;border:none;font:600 13px system-ui;cursor:pointer;letter-spacing:.05em;">Reload</button></div>';
+      }
+    }, 6000);
+  </script>
+
   <style>
     :root {
       --bg: #0a0a0f;
@@ -662,28 +684,64 @@ function App() {
     toastTimer.current = setTimeout(() => setToast(null), 2600);
   }, []);
 
-  // Load + subscribe
+  // Load + subscribe (with hard timeout so the UI never stalls on Firebase issues)
   useEffect(() => {
-    const unsub = CONFIG_DOC.onSnapshot(
-      (snap) => {
-        if (snap.exists) {
-          const data = snap.data();
-          setConfig({ ...DEFAULT_CONFIG, ...data, profile: { ...DEFAULT_CONFIG.profile, ...(data.profile||{}) }, audio: { ...DEFAULT_CONFIG.audio, ...(data.audio||{}) }, theme: { ...DEFAULT_CONFIG.theme, ...(data.theme||{}) }, auth: { ...DEFAULT_CONFIG.auth, ...(data.auth||{}) } });
-        } else {
-          CONFIG_DOC.set(DEFAULT_CONFIG).catch(()=>{});
-          setConfig(DEFAULT_CONFIG);
-        }
-        setLoading(false);
-      },
-      (err) => {
-        console.warn('firestore error, fallback local', err);
-        const local = localStorage.getItem('gnmc_config');
-        setConfig(local ? JSON.parse(local) : DEFAULT_CONFIG);
+    let settled = false;
+    const finish = (cfg) => {
+      if (settled) return;
+      settled = true;
+      setConfig(cfg);
+      setLoading(false);
+    };
+
+    let fallback = DEFAULT_CONFIG;
+    try {
+      const local = localStorage.getItem('gnmc_config');
+      if (local) fallback = { ...DEFAULT_CONFIG, ...JSON.parse(local) };
+    } catch (_) {}
+
+    const timer = setTimeout(() => {
+      if (!settled) {
+        console.warn('[gnmc] Firestore timeout (2.5s) — rendering with local/default config');
         setError('offline');
-        setLoading(false);
+        finish(fallback);
       }
-    );
-    return () => unsub();
+    }, 2500);
+
+    let unsub = () => {};
+    try {
+      unsub = CONFIG_DOC.onSnapshot(
+        (snap) => {
+          clearTimeout(timer);
+          if (snap.exists) {
+            const data = snap.data();
+            finish({
+              ...DEFAULT_CONFIG, ...data,
+              profile: { ...DEFAULT_CONFIG.profile, ...(data.profile||{}) },
+              audio:   { ...DEFAULT_CONFIG.audio,   ...(data.audio||{}) },
+              theme:   { ...DEFAULT_CONFIG.theme,   ...(data.theme||{}) },
+              auth:    { ...DEFAULT_CONFIG.auth,    ...(data.auth||{}) }
+            });
+          } else {
+            CONFIG_DOC.set(DEFAULT_CONFIG).catch(()=>{});
+            finish(DEFAULT_CONFIG);
+          }
+        },
+        (err) => {
+          clearTimeout(timer);
+          console.warn('[gnmc] firestore error → fallback local', err);
+          setError('offline');
+          finish(fallback);
+        }
+      );
+    } catch (err) {
+      clearTimeout(timer);
+      console.error('[gnmc] firebase init failed', err);
+      setError('offline');
+      finish(fallback);
+    }
+
+    return () => { clearTimeout(timer); try { unsub(); } catch (_) {} };
   }, []);
 
   // Apply theme + background
@@ -1759,9 +1817,33 @@ function SettingsTab({ config, saveConfig, showToast }) {
 }
 
 // ============================================================================
-// MOUNT
+// ERROR BOUNDARY + MOUNT
 // ============================================================================
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { err: null }; }
+  static getDerivedStateFromError(err) { return { err }; }
+  componentDidCatch(err, info) { console.error('[gnmc] react crash', err, info); }
+  render() {
+    if (this.state.err) {
+      return (
+        <div style={{ padding: 24, color: '#f0f0f5', fontFamily: 'monospace', maxWidth: 720, margin: '40px auto' }}>
+          <h1 style={{ color: '#ff6b6b', fontFamily: 'Cinzel, serif', fontSize: 22, marginBottom: 12 }}>Something broke</h1>
+          <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, opacity: 0.85, background: '#14141f', padding: 16, borderRadius: 12, border: '1px solid rgba(255,107,107,0.3)' }}>
+            {String(this.state.err && (this.state.err.stack || this.state.err.message || this.state.err))}
+          </pre>
+          <p style={{ marginTop: 16, opacity: 0.6, fontSize: 12 }}>Open the browser console for more details. Try a hard refresh (Ctrl+Shift+R).</p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const rootEl = document.getElementById('root');
+rootEl.dataset.mounted = '1';
+ReactDOM.createRoot(rootEl).render(
+  <ErrorBoundary><App /></ErrorBoundary>
+);
   </script>
 </body>
 </html>
