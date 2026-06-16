@@ -1,0 +1,1631 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <meta name="description" content="Personal bio • links • music" />
+  <title>gnmc</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a0a0f'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='serif' font-size='18' fill='%23d4af37' font-weight='bold'%3Eg%3C/text%3E%3C/svg%3E" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Tajawal:wght@300;400;500;700;900&family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #14141f;
+      --surface-2: #1c1c2b;
+      --border: rgba(212, 175, 55, 0.12);
+      --primary: #d4af37;
+      --primary-soft: rgba(212, 175, 55, 0.15);
+      --accent: #9d4edd;
+      --text: #f0f0f5;
+      --text-secondary: #a8a8c0;
+      --text-tertiary: #6b6b85;
+      --danger: #ef476f;
+      --success: #06d6a0;
+      --bg-image: none;
+      --bg-overlay: 0.6;
+    }
+
+    * { -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', 'Cairo', system-ui, sans-serif;
+      overflow-x: hidden;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
+    body {
+      background-image: var(--bg-image);
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 10, 15, var(--bg-overlay));
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .font-display { font-family: 'Cinzel', 'Tajawal', serif; }
+    .font-body { font-family: 'Outfit', 'Cairo', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* Aurora animated background */
+    .aurora-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .aurora-bg::before, .aurora-bg::after {
+      content: '';
+      position: absolute;
+      width: 60vmax;
+      height: 60vmax;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: 0.35;
+      animation: aurora 20s ease-in-out infinite alternate;
+    }
+    .aurora-bg::before {
+      background: radial-gradient(circle, var(--primary) 0%, transparent 65%);
+      top: -20%;
+      left: -10%;
+    }
+    .aurora-bg::after {
+      background: radial-gradient(circle, var(--accent) 0%, transparent 65%);
+      bottom: -20%;
+      right: -10%;
+      animation-delay: -10s;
+    }
+    @keyframes aurora {
+      0%   { transform: translate(0, 0) rotate(0deg) scale(1); }
+      50%  { transform: translate(5%, 8%) rotate(180deg) scale(1.15); }
+      100% { transform: translate(-5%, -3%) rotate(360deg) scale(0.95); }
+    }
+
+    /* Particles */
+    .particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+    .particle {
+      position: absolute;
+      width: 3px; height: 3px;
+      background: var(--primary);
+      border-radius: 50%;
+      opacity: 0.6;
+      animation: float 12s linear infinite;
+    }
+    @keyframes float {
+      0%   { transform: translateY(110vh) translateX(0); opacity: 0; }
+      10%  { opacity: 0.7; }
+      90%  { opacity: 0.7; }
+      100% { transform: translateY(-10vh) translateX(40px); opacity: 0; }
+    }
+
+    /* Grain overlay */
+    .grain {
+      position: fixed; inset: 0; z-index: 1; pointer-events: none;
+      opacity: 0.04; mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /* Buttons */
+    .btn-primary {
+      background: var(--primary);
+      color: #0a0a0f;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      transition: transform 150ms cubic-bezier(0.4,0,0.2,1), box-shadow 150ms cubic-bezier(0.4,0,0.2,1), opacity 150ms;
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px var(--primary-soft); }
+    .btn-primary:active { transform: translateY(0) scale(0.98); }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      transition: all 150ms cubic-bezier(0.4,0,0.2,1);
+    }
+    .btn-ghost:hover { border-color: var(--primary); background: var(--primary-soft); }
+
+    .btn-danger { background: var(--danger); color: white; transition: all 150ms; }
+    .btn-danger:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    /* Card */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      backdrop-filter: blur(12px);
+    }
+
+    /* Input */
+    .input {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: var(--text);
+      font-family: inherit;
+      width: 100%;
+      transition: border-color 150ms, background 150ms;
+    }
+    .input:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: rgba(0,0,0,0.4);
+    }
+    .input::placeholder { color: var(--text-tertiary); }
+
+    /* Link card hover */
+    .link-card {
+      transition: transform 180ms cubic-bezier(0.4,0,0.2,1), background 180ms, border-color 180ms;
+      will-change: transform;
+    }
+    .link-card:hover { transform: translateY(-2px); border-color: var(--primary); background: rgba(212,175,55,0.06); }
+    .link-card:active { transform: translateY(0) scale(0.98); }
+
+    /* Avatar */
+    .avatar-ring {
+      position: relative;
+      border-radius: 50%;
+      padding: 4px;
+      background: conic-gradient(from 0deg, var(--primary), var(--accent), var(--primary));
+      animation: rotate 8s linear infinite;
+    }
+    @keyframes rotate { to { transform: rotate(360deg); } }
+    .avatar-inner {
+      background: var(--bg);
+      border-radius: 50%;
+      padding: 4px;
+      animation: rotate 8s linear infinite reverse;
+    }
+    .avatar-img {
+      width: 100%; height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      cursor: pointer;
+      user-select: none;
+    }
+    .avatar-img:active { transform: scale(0.96); transition: transform 80ms; }
+
+    /* Fade in */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up {
+      animation: fadeUp 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    .fade-in { animation: fadeIn 300ms ease both; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      animation: fadeIn 200ms ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-content {
+      animation: modalIn 280ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.92) translateY(12px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--surface-2); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--primary-soft); }
+
+    /* Tabs */
+    .tab {
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 150ms;
+      cursor: pointer;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+    .tab:hover { color: var(--text); background: var(--surface-2); }
+    .tab.active { background: var(--primary); color: #0a0a0f; }
+
+    /* Spinner */
+    .spinner {
+      width: 28px; height: 28px;
+      border: 2px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Reduce motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      .avatar-ring, .avatar-inner { animation: none; }
+    }
+
+    /* RTL helper */
+    [dir="rtl"] .font-display { font-family: 'Tajawal', 'Cinzel', serif; }
+
+    /* Theme preset swatches */
+    .theme-swatch {
+      cursor: pointer;
+      border: 2px solid transparent;
+      border-radius: 14px;
+      padding: 12px;
+      transition: all 150ms;
+      position: relative;
+      overflow: hidden;
+    }
+    .theme-swatch.active {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-soft);
+    }
+    .theme-swatch:hover { transform: translateY(-2px); }
+
+    /* Music orb */
+    .music-orb {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 50;
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(20px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 180ms cubic-bezier(0.4,0,0.2,1);
+    }
+    .music-orb:hover { transform: scale(1.08); border-color: var(--primary); }
+    .music-orb svg { color: var(--primary); }
+    .music-orb.playing::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 2px solid var(--primary);
+      opacity: 0.4;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.4; }
+      50%      { transform: scale(1.15); opacity: 0; }
+    }
+
+    /* Snackbar */
+    .snackbar {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 12px 20px;
+      border-radius: 12px;
+      z-index: 200;
+      animation: fadeUp 250ms ease;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    /* Hide number input arrows */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    /* Focus visible */
+    *:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;font-family:'Cinzel',serif;color:#d4af37;">
+      <div class="spinner"></div>
+      <div style="letter-spacing:0.4em;font-size:12px;text-transform:uppercase;opacity:0.6;">loading</div>
+    </div>
+  </div>
+
+  <script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+// ============================================================================
+// FIREBASE
+// ============================================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyAC9BzBpw66oBDriZoi9A5zsThKLFZiNv8",
+  authDomain: "imam-warsh.firebaseapp.com",
+  databaseURL: "https://imam-warsh-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "imam-warsh",
+  storageBucket: "imam-warsh.firebasestorage.app",
+  messagingSenderId: "898520924315",
+  appId: "1:898520924315:web:b74dbd20340ef53b0a463e",
+  measurementId: "G-YGY41LQF8J"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const storage = firebase.storage();
+const CONFIG_DOC = db.collection('sites').doc('gnmc');
+
+// ============================================================================
+// UTILS
+// ============================================================================
+async function sha256(text) {
+  const buf = new TextEncoder().encode(text);
+  const hashBuf = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hashBuf))
+    .map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+const DEFAULT_PASSWORD_HASH = '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4'; // sha256("1234")
+
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+// ============================================================================
+// ICONS (inline SVG)
+// ============================================================================
+const Icon = ({ name, size = 20, className = '' }) => {
+  const paths = {
+    tiktok: <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5.8 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.84-.1z" fill="currentColor"/>,
+    snapchat: <path d="M12.166.5C9.622.5 7.51 1.99 6.466 4.176c-.456 1-.502 2.013-.502 2.913 0 .456.045.957.045 1.413-.297.16-.638.252-1 .252-.366 0-.776-.137-1.05-.32-.182-.137-.546-.137-.728.045-.182.183-.182.502 0 .684.456.456 1.142.776 1.872.776.32 0 .593-.045.866-.137-.319 1.05-.866 1.96-1.55 2.687-.502.546-1.142.957-1.689 1.05-.182.046-.32.183-.32.41 0 .137.092.32.275.41.41.183 1.005.32 1.55.32.182 0 .32.092.32.275 0 .547.183 1.05.547 1.413.41.41 1.005.638 1.643.638.41 0 .82-.137 1.187-.41.41-.275.866-.456 1.413-.456.502 0 .957.183 1.413.456.366.273.776.41 1.187.41.683 0 1.232-.228 1.643-.638.364-.364.547-.866.547-1.413 0-.183.137-.275.319-.275.547 0 1.142-.137 1.55-.32.182-.09.275-.273.275-.41 0-.227-.137-.364-.32-.41-.546-.092-1.187-.502-1.689-1.05-.684-.728-1.232-1.643-1.55-2.687.273.092.546.137.866.137.73 0 1.416-.32 1.872-.776.182-.182.182-.502 0-.684-.182-.182-.546-.182-.728-.045-.273.183-.683.32-1.05.32-.362 0-.703-.092-1-.252 0-.456.046-.957.046-1.413 0-.9-.046-1.913-.502-2.913C16.823 1.99 14.71.5 12.166.5z" fill="currentColor"/>,
+    instagram: <><rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" strokeWidth="2" fill="none"/><circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2" fill="none"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor"/></>,
+    twitter: <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" fill="currentColor"/>,
+    youtube: <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="currentColor"/>,
+    discord: <path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.873-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" fill="currentColor"/>,
+    twitch: <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z" fill="currentColor"/>,
+    spotify: <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.42 1.56-.301.42-1.021.599-1.561.3z" fill="currentColor"/>,
+    github: <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" fill="currentColor"/>,
+    telegram: <path d="m9.417 15.181-.397 5.584c.568 0 .814-.244 1.109-.537l2.663-2.545 5.518 4.041c1.012.564 1.725.267 1.998-.931l3.622-16.972.001-.001c.321-1.496-.541-2.081-1.527-1.714L2.388 9.642c-1.452.564-1.43 1.374-.247 1.741l5.443 1.693 12.643-7.911c.595-.394 1.136-.176.691.218z" fill="currentColor"/>,
+    whatsapp: <path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 0 1 8.413 3.488 11.824 11.824 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 0 0 1.51 5.26l.495.795-1.005 3.673 3.768-.98zm9.18-5.32c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.099-.198.05-.371-.025-.52-.075-.149-.668-1.612-.916-2.207-.241-.579-.486-.5-.668-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.71.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z" fill="currentColor"/>,
+    email: <><rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/><path d="m22 7-10 5L2 7" stroke="currentColor" strokeWidth="2" fill="none"/></>,
+    link: <><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></>,
+    music: <><path d="M9 18V5l12-2v13" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/><circle cx="6" cy="18" r="3" stroke="currentColor" strokeWidth="2" fill="none"/><circle cx="18" cy="16" r="3" stroke="currentColor" strokeWidth="2" fill="none"/></>,
+    play: <path d="M8 5v14l11-7z" fill="currentColor"/>,
+    pause: <><rect x="6" y="4" width="4" height="16" fill="currentColor"/><rect x="14" y="4" width="4" height="16" fill="currentColor"/></>,
+    plus: <><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></>,
+    trash: <><polyline points="3 6 5 6 21 6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></>,
+    edit: <><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></>,
+    check: <polyline points="20 6 9 17 4 12" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>,
+    x: <><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></>,
+    settings: <><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" fill="none"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></>,
+    logout: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/><polyline points="16 17 21 12 16 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/><line x1="21" y1="12" x2="9" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></>,
+    upload: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/><polyline points="17 8 12 3 7 8" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/><line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></>,
+    palette: <><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none"/><circle cx="7.5" cy="10.5" r="1.5" fill="currentColor"/><circle cx="12" cy="7.5" r="1.5" fill="currentColor"/><circle cx="16.5" cy="10.5" r="1.5" fill="currentColor"/><circle cx="14" cy="15" r="1.5" fill="currentColor"/></>,
+    sparkles: <path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2zM19 14l.75 2.25L22 17l-2.25.75L19 20l-.75-2.25L16 17l2.25-.75L19 14zM5 14l.75 2.25L8 17l-2.25.75L5 20l-.75-2.25L2 17l2.25-.75L5 14z" fill="currentColor"/>,
+    user: <><circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2" fill="none"/><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/></>,
+    eye: <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" fill="none"/></>,
+    lock: <><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/></>,
+    volume: <><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" stroke="currentColor" strokeWidth="2" fill="none" strokeLinejoin="round"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/></>,
+    'volume-mute': <><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" stroke="currentColor" strokeWidth="2" fill="none" strokeLinejoin="round"/><line x1="22" y1="9" x2="16" y2="15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="16" y1="9" x2="22" y2="15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></>
+  };
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden="true">
+      {paths[name] || paths.link}
+    </svg>
+  );
+};
+
+// ============================================================================
+// SOCIAL PLATFORMS PRESETS
+// ============================================================================
+const SOCIAL_PRESETS = [
+  { id: 'tiktok',    label: 'TikTok',    icon: 'tiktok',    placeholder: 'https://tiktok.com/@username' },
+  { id: 'snapchat',  label: 'Snapchat',  icon: 'snapchat',  placeholder: 'https://snapchat.com/add/username' },
+  { id: 'instagram', label: 'Instagram', icon: 'instagram', placeholder: 'https://instagram.com/username' },
+  { id: 'twitter',   label: 'X',         icon: 'twitter',   placeholder: 'https://x.com/username' },
+  { id: 'youtube',   label: 'YouTube',   icon: 'youtube',   placeholder: 'https://youtube.com/@channel' },
+  { id: 'discord',   label: 'Discord',   icon: 'discord',   placeholder: 'https://discord.gg/...' },
+  { id: 'twitch',    label: 'Twitch',    icon: 'twitch',    placeholder: 'https://twitch.tv/username' },
+  { id: 'spotify',   label: 'Spotify',   icon: 'spotify',   placeholder: 'https://open.spotify.com/...' },
+  { id: 'github',    label: 'GitHub',    icon: 'github',    placeholder: 'https://github.com/username' },
+  { id: 'telegram',  label: 'Telegram',  icon: 'telegram',  placeholder: 'https://t.me/username' },
+  { id: 'whatsapp',  label: 'WhatsApp',  icon: 'whatsapp',  placeholder: 'https://wa.me/...' },
+  { id: 'email',     label: 'Email',     icon: 'email',     placeholder: 'mailto:you@example.com' },
+  { id: 'link',      label: 'Custom',    icon: 'link',      placeholder: 'https://...' },
+];
+
+// ============================================================================
+// THEMES
+// ============================================================================
+const THEMES = {
+  midnight_galaxy: {
+    name: 'Midnight Galaxy',
+    bg: '#0a0a0f', surface: '#14141f', surface2: '#1c1c2b',
+    primary: '#d4af37', accent: '#9d4edd',
+    text: '#f0f0f5', textSecondary: '#a8a8c0', textTertiary: '#6b6b85',
+    border: 'rgba(212, 175, 55, 0.12)',
+    primarySoft: 'rgba(212, 175, 55, 0.15)'
+  },
+  cyberpunk: {
+    name: 'Cyberpunk',
+    bg: '#0d0014', surface: '#1a0028', surface2: '#25003d',
+    primary: '#ff006e', accent: '#00f5ff',
+    text: '#f5e6ff', textSecondary: '#c4a3d4', textTertiary: '#7a6588',
+    border: 'rgba(255, 0, 110, 0.18)',
+    primarySoft: 'rgba(255, 0, 110, 0.15)'
+  },
+  royal_velvet: {
+    name: 'Royal Velvet',
+    bg: '#1a0824', surface: '#291435', surface2: '#3a1f4a',
+    primary: '#e9b949', accent: '#bd5dff',
+    text: '#fbe9ff', textSecondary: '#cba7d6', textTertiary: '#8a6695',
+    border: 'rgba(233, 185, 73, 0.15)',
+    primarySoft: 'rgba(233, 185, 73, 0.15)'
+  },
+  crimson_night: {
+    name: 'Crimson Night',
+    bg: '#120606', surface: '#1f0a0a', surface2: '#2b0f0f',
+    primary: '#e94f4f', accent: '#ffba6b',
+    text: '#fde8e8', textSecondary: '#cba5a5', textTertiary: '#806464',
+    border: 'rgba(233, 79, 79, 0.18)',
+    primarySoft: 'rgba(233, 79, 79, 0.12)'
+  },
+  ocean_deep: {
+    name: 'Ocean Deep',
+    bg: '#031c2b', surface: '#0a2e44', surface2: '#0f3d59',
+    primary: '#5eead4', accent: '#a3bffa',
+    text: '#e0f7ff', textSecondary: '#9fc4d6', textTertiary: '#5c8499',
+    border: 'rgba(94, 234, 212, 0.16)',
+    primarySoft: 'rgba(94, 234, 212, 0.12)'
+  },
+  dark_forest: {
+    name: 'Dark Forest',
+    bg: '#0a1410', surface: '#13241c', surface2: '#1c3327',
+    primary: '#c9a96e', accent: '#7ec850',
+    text: '#e8f0e5', textSecondary: '#9eb59a', textTertiary: '#5e7058',
+    border: 'rgba(201, 169, 110, 0.15)',
+    primarySoft: 'rgba(201, 169, 110, 0.12)'
+  },
+  sunset_dunes: {
+    name: 'Sunset Dunes',
+    bg: '#1a0e08', surface: '#2a1810', surface2: '#3a2418',
+    primary: '#f4a261', accent: '#e76f51',
+    text: '#fdf2e9', textSecondary: '#d9b89a', textTertiary: '#8a6d52',
+    border: 'rgba(244, 162, 97, 0.16)',
+    primarySoft: 'rgba(244, 162, 97, 0.12)'
+  },
+  sakura: {
+    name: 'Sakura',
+    bg: '#1a0b14', surface: '#2a1421', surface2: '#3a1d2e',
+    primary: '#f7a1c4', accent: '#ffd6a5',
+    text: '#fce8f1', textSecondary: '#d4a8bd', textTertiary: '#85607a',
+    border: 'rgba(247, 161, 196, 0.18)',
+    primarySoft: 'rgba(247, 161, 196, 0.14)'
+  },
+  mono_chrome: {
+    name: 'Mono Chrome',
+    bg: '#0a0a0a', surface: '#171717', surface2: '#222222',
+    primary: '#fafafa', accent: '#a3a3a3',
+    text: '#fafafa', textSecondary: '#a3a3a3', textTertiary: '#666666',
+    border: 'rgba(250, 250, 250, 0.10)',
+    primarySoft: 'rgba(250, 250, 250, 0.08)'
+  },
+  emerald_gold: {
+    name: 'Emerald & Gold',
+    bg: '#04140d', surface: '#0b2419', surface2: '#103324',
+    primary: '#d4af37', accent: '#10b981',
+    text: '#ecfdf5', textSecondary: '#a1c8b4', textTertiary: '#5f7d6e',
+    border: 'rgba(212, 175, 55, 0.16)',
+    primarySoft: 'rgba(212, 175, 55, 0.12)'
+  }
+};
+
+function applyTheme(themeObj) {
+  if (!themeObj) return;
+  const r = document.documentElement;
+  r.style.setProperty('--bg', themeObj.bg);
+  r.style.setProperty('--surface', themeObj.surface);
+  r.style.setProperty('--surface-2', themeObj.surface2);
+  r.style.setProperty('--primary', themeObj.primary);
+  r.style.setProperty('--accent', themeObj.accent);
+  r.style.setProperty('--text', themeObj.text);
+  r.style.setProperty('--text-secondary', themeObj.textSecondary);
+  r.style.setProperty('--text-tertiary', themeObj.textTertiary);
+  r.style.setProperty('--border', themeObj.border);
+  r.style.setProperty('--primary-soft', themeObj.primarySoft);
+}
+
+function applyBackground(bgImage, overlay) {
+  const r = document.documentElement;
+  r.style.setProperty('--bg-image', bgImage ? `url("${bgImage}")` : 'none');
+  r.style.setProperty('--bg-overlay', overlay != null ? overlay : 0.6);
+}
+
+// ============================================================================
+// DEFAULT CONFIG
+// ============================================================================
+const DEFAULT_CONFIG = {
+  profile: {
+    name: 'gnmc',
+    title: 'click my avatar 10 times',
+    bio: 'welcome to my world',
+    avatar: ''
+  },
+  links: [
+    { id: uid(), type: 'tiktok', label: 'TikTok', url: '' },
+    { id: uid(), type: 'snapchat', label: 'Snapchat', url: '' }
+  ],
+  audio: {
+    backgroundUrl: '',
+    hoverUrl: '',
+    clickUrl: '',
+    autoplay: true,
+    volume: 0.4,
+    loop: true
+  },
+  theme: {
+    preset: 'midnight_galaxy',
+    custom: null,
+    backgroundImage: '',
+    backgroundOverlay: 0.6,
+    backgroundEffect: 'aurora' // 'aurora' | 'particles' | 'none'
+  },
+  auth: { passwordHash: DEFAULT_PASSWORD_HASH },
+  meta: { createdAt: Date.now() }
+};
+
+// ============================================================================
+// MAIN APP
+// ============================================================================
+function App() {
+  const [config, setConfig] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [hasEntered, setHasEntered] = useState(false);
+  const [isDashboard, setIsDashboard] = useState(false);
+  const [showCodeModal, setShowCodeModal] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  const toastTimer = useRef(null);
+  const showToast = useCallback((msg) => {
+    setToast(msg);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2600);
+  }, []);
+
+  // Load + subscribe
+  useEffect(() => {
+    const unsub = CONFIG_DOC.onSnapshot(
+      (snap) => {
+        if (snap.exists) {
+          const data = snap.data();
+          setConfig({ ...DEFAULT_CONFIG, ...data, profile: { ...DEFAULT_CONFIG.profile, ...(data.profile||{}) }, audio: { ...DEFAULT_CONFIG.audio, ...(data.audio||{}) }, theme: { ...DEFAULT_CONFIG.theme, ...(data.theme||{}) }, auth: { ...DEFAULT_CONFIG.auth, ...(data.auth||{}) } });
+        } else {
+          CONFIG_DOC.set(DEFAULT_CONFIG).catch(()=>{});
+          setConfig(DEFAULT_CONFIG);
+        }
+        setLoading(false);
+      },
+      (err) => {
+        console.warn('firestore error, fallback local', err);
+        const local = localStorage.getItem('gnmc_config');
+        setConfig(local ? JSON.parse(local) : DEFAULT_CONFIG);
+        setError('offline');
+        setLoading(false);
+      }
+    );
+    return () => unsub();
+  }, []);
+
+  // Apply theme + background
+  useEffect(() => {
+    if (!config) return;
+    const themeKey = config.theme.preset;
+    const themeObj = themeKey === 'custom' && config.theme.custom
+      ? config.theme.custom
+      : THEMES[themeKey] || THEMES.midnight_galaxy;
+    applyTheme(themeObj);
+    applyBackground(config.theme.backgroundImage, config.theme.backgroundOverlay);
+  }, [config?.theme]);
+
+  // Save helper
+  const saveConfig = useCallback(async (updates) => {
+    const newConfig = typeof updates === 'function' ? updates(config) : { ...config, ...updates };
+    setConfig(newConfig);
+    localStorage.setItem('gnmc_config', JSON.stringify(newConfig));
+    try {
+      await CONFIG_DOC.set(newConfig, { merge: true });
+    } catch (err) {
+      console.warn('save failed', err);
+      showToast('Saved locally (offline)');
+    }
+  }, [config, showToast]);
+
+  const handleCodeSubmit = useCallback(async (code) => {
+    const hash = await sha256(code);
+    if (hash === (config?.auth?.passwordHash || DEFAULT_PASSWORD_HASH)) {
+      setIsDashboard(true);
+      setShowCodeModal(false);
+      showToast('Welcome back');
+      return true;
+    }
+    return false;
+  }, [config, showToast]);
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center flex-col gap-4">
+        <div className="spinner"></div>
+        <div className="font-display text-xs tracking-[0.4em] uppercase opacity-60">loading</div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <BackgroundLayer effect={config.theme.backgroundEffect} />
+      <div className="grain"></div>
+
+      <div className="relative z-10">
+        {!hasEntered ? (
+          <EntryOverlay
+            config={config}
+            onEnter={() => setHasEntered(true)}
+          />
+        ) : isDashboard ? (
+          <Dashboard
+            config={config}
+            saveConfig={saveConfig}
+            showToast={showToast}
+            onExit={() => setIsDashboard(false)}
+          />
+        ) : (
+          <PublicProfile
+            config={config}
+            onSecretTrigger={() => setShowCodeModal(true)}
+          />
+        )}
+      </div>
+
+      {hasEntered && !isDashboard && config.audio.backgroundUrl && (
+        <BackgroundAudio
+          src={config.audio.backgroundUrl}
+          volume={config.audio.volume}
+          loop={config.audio.loop}
+        />
+      )}
+
+      {showCodeModal && (
+        <CodeModal
+          onClose={() => setShowCodeModal(false)}
+          onSubmit={handleCodeSubmit}
+        />
+      )}
+
+      {toast && <div className="snackbar text-sm">{toast}</div>}
+    </>
+  );
+}
+
+// ============================================================================
+// BACKGROUND LAYER
+// ============================================================================
+function BackgroundLayer({ effect }) {
+  if (effect === 'none') return null;
+  if (effect === 'particles') {
+    return (
+      <div className="particles">
+        {Array.from({ length: 28 }).map((_, i) => (
+          <div
+            key={i}
+            className="particle"
+            style={{
+              left: `${(i * 3.6) % 100}%`,
+              animationDelay: `${(i * 0.4) % 12}s`,
+              animationDuration: `${10 + (i % 6)}s`
+            }}
+          />
+        ))}
+      </div>
+    );
+  }
+  return <div className="aurora-bg"></div>;
+}
+
+// ============================================================================
+// BACKGROUND AUDIO
+// ============================================================================
+function BackgroundAudio({ src, volume, loop }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    ref.current.volume = volume ?? 0.4;
+    ref.current.play().catch(() => {});
+  }, [src, volume]);
+  return <audio ref={ref} src={src} loop={loop !== false} autoPlay />;
+}
+
+// ============================================================================
+// ENTRY OVERLAY (click to enter — solves autoplay restriction)
+// ============================================================================
+function EntryOverlay({ config, onEnter }) {
+  return (
+    <div
+      className="fixed inset-0 flex items-center justify-center cursor-pointer fade-in"
+      style={{ zIndex: 40 }}
+      onClick={onEnter}
+    >
+      <div className="text-center">
+        <div className="font-display text-[10px] sm:text-xs tracking-[0.6em] uppercase opacity-50 mb-6">
+          click anywhere
+        </div>
+        <div className="font-display text-3xl sm:text-5xl" style={{ color: 'var(--primary)' }}>
+          enter
+        </div>
+        <div className="mt-8 opacity-40 text-xs font-mono">
+          {config.profile.name}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// PUBLIC PROFILE
+// ============================================================================
+function PublicProfile({ config, onSecretTrigger }) {
+  const [clickCount, setClickCount] = useState(0);
+  const clickTimer = useRef(null);
+  const [musicPlaying, setMusicPlaying] = useState(true);
+
+  const handleAvatarClick = (e) => {
+    e.preventDefault();
+    setClickCount((c) => {
+      const next = c + 1;
+      clearTimeout(clickTimer.current);
+      clickTimer.current = setTimeout(() => setClickCount(0), 4000);
+      if (next >= 10) {
+        onSecretTrigger();
+        return 0;
+      }
+      return next;
+    });
+  };
+
+  const avatarSrc = config.profile.avatar ||
+    `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' fill='${config.theme.preset === 'custom' ? '#14141f' : THEMES[config.theme.preset]?.surface || '#14141f'}'/><text x='100' y='115' text-anchor='middle' font-family='Cinzel' font-size='80' fill='${THEMES[config.theme.preset]?.primary || '#d4af37'}' font-weight='700'>${(config.profile.name?.[0] || 'g').toUpperCase()}</text></svg>`)}`;
+
+  const validLinks = (config.links || []).filter(l => l.url && l.url.trim());
+
+  return (
+    <div className="min-h-[100dvh] flex flex-col items-center px-4 py-12 sm:py-16">
+      <div className="w-full max-w-md fade-up">
+        {/* Avatar */}
+        <div className="flex justify-center mb-6">
+          <div className="avatar-ring" style={{ width: '140px', height: '140px' }}>
+            <div className="avatar-inner w-full h-full">
+              <img
+                src={avatarSrc}
+                alt={config.profile.name}
+                className="avatar-img"
+                onClick={handleAvatarClick}
+                draggable={false}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Name + bio */}
+        <div className="text-center mb-2 fade-up" style={{ animationDelay: '60ms' }}>
+          <h1 className="font-display text-3xl sm:text-4xl tracking-wide" style={{ color: 'var(--text)' }}>
+            {config.profile.name}
+          </h1>
+        </div>
+
+        {config.profile.title && (
+          <div className="text-center mb-1 fade-up" style={{ animationDelay: '120ms' }}>
+            <p className="font-mono text-xs sm:text-sm" style={{ color: 'var(--primary)' }}>
+              ◆ {config.profile.title} ◆
+            </p>
+          </div>
+        )}
+
+        {config.profile.bio && (
+          <div className="text-center mb-10 fade-up" style={{ animationDelay: '180ms' }}>
+            <p className="text-sm leading-relaxed max-w-xs mx-auto" style={{ color: 'var(--text-secondary)' }}>
+              {config.profile.bio}
+            </p>
+          </div>
+        )}
+
+        {/* Links */}
+        <div className="space-y-3">
+          {validLinks.length === 0 && (
+            <div className="text-center text-sm opacity-40 py-8">
+              no links yet
+            </div>
+          )}
+          {validLinks.map((link, i) => {
+            const preset = SOCIAL_PRESETS.find(p => p.id === link.type) || SOCIAL_PRESETS[SOCIAL_PRESETS.length-1];
+            return (
+              <a
+                key={link.id}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="link-card flex items-center gap-4 px-5 py-4 rounded-2xl fade-up"
+                style={{
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  animationDelay: `${240 + i * 50}ms`
+                }}
+              >
+                <div className="flex-shrink-0" style={{ color: 'var(--primary)' }}>
+                  <Icon name={preset.icon} size={22} />
+                </div>
+                <div className="flex-1 font-medium text-sm" style={{ color: 'var(--text)' }}>
+                  {link.label || preset.label}
+                </div>
+                <div className="opacity-30" style={{ color: 'var(--text-secondary)' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/></svg>
+                </div>
+              </a>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div className="text-center mt-12 fade-up" style={{ animationDelay: '600ms' }}>
+          <div className="font-mono text-[10px] tracking-[0.3em] uppercase" style={{ color: 'var(--text-tertiary)' }}>
+            ◌ {config.profile.name} ◌
+          </div>
+        </div>
+      </div>
+
+      {clickCount >= 5 && clickCount < 10 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 font-mono text-xs opacity-50">
+          {clickCount}/10
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// SECRET CODE MODAL
+// ============================================================================
+function CodeModal({ onClose, onSubmit }) {
+  const [code, setCode] = useState('');
+  const [error, setError] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const inputRef = useRef(null);
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!code.trim()) return;
+    setSubmitting(true);
+    setError(false);
+    const ok = await onSubmit(code);
+    if (!ok) {
+      setError(true);
+      setCode('');
+      setSubmitting(false);
+      setTimeout(() => setError(false), 600);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div
+        className="modal-content card p-7 w-full max-w-sm"
+        onClick={(e) => e.stopPropagation()}
+        style={{ animation: error ? 'shake 0.4s' : undefined }}
+      >
+        <style>{`@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }`}</style>
+
+        <div className="flex items-center gap-3 mb-2">
+          <div style={{ color: 'var(--primary)' }}><Icon name="lock" size={22} /></div>
+          <div className="font-display text-lg" style={{ color: 'var(--text)' }}>secret</div>
+        </div>
+        <p className="text-xs opacity-60 mb-5">enter the secret code</p>
+
+        <form onSubmit={handleSubmit}>
+          <input
+            ref={inputRef}
+            type="password"
+            inputMode="numeric"
+            autoComplete="off"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="••••"
+            className="input font-mono text-center text-2xl tracking-[0.5em]"
+            style={{ borderColor: error ? 'var(--danger)' : undefined }}
+          />
+          <div className="flex gap-2 mt-5">
+            <button type="button" onClick={onClose} className="btn-ghost flex-1 py-3 rounded-xl text-sm font-medium">
+              cancel
+            </button>
+            <button type="submit" disabled={submitting} className="btn-primary flex-1 py-3 rounded-xl text-sm">
+              {submitting ? 'checking...' : 'enter'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// DASHBOARD
+// ============================================================================
+const TABS = [
+  { id: 'profile', label: 'Profile', icon: 'user' },
+  { id: 'links',   label: 'Links',   icon: 'link' },
+  { id: 'themes',  label: 'Themes',  icon: 'palette' },
+  { id: 'audio',   label: 'Audio',   icon: 'music' },
+  { id: 'settings',label: 'Settings',icon: 'settings' }
+];
+
+function Dashboard({ config, saveConfig, showToast, onExit }) {
+  const [tab, setTab] = useState('profile');
+
+  return (
+    <div className="min-h-[100dvh] py-6 sm:py-10 px-4 sm:px-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8 fade-up">
+          <div>
+            <div className="font-mono text-[10px] tracking-[0.4em] uppercase opacity-50 mb-1">dashboard</div>
+            <h1 className="font-display text-2xl sm:text-3xl" style={{ color: 'var(--primary)' }}>
+              control panel
+            </h1>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={onExit} className="btn-ghost px-4 py-2 rounded-xl text-sm flex items-center gap-2">
+              <Icon name="eye" size={16} /> <span className="hidden sm:inline">view</span>
+            </button>
+            <button onClick={() => { onExit(); window.location.reload(); }} className="btn-ghost px-4 py-2 rounded-xl text-sm flex items-center gap-2">
+              <Icon name="logout" size={16} /> <span className="hidden sm:inline">logout</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 mb-6 overflow-x-auto pb-2 fade-up" style={{ animationDelay: '60ms' }}>
+          {TABS.map(t => (
+            <button
+              key={t.id}
+              className={`tab flex items-center gap-2 ${tab === t.id ? 'active' : ''}`}
+              onClick={() => setTab(t.id)}
+            >
+              <Icon name={t.icon} size={16} />
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        <div className="fade-up" style={{ animationDelay: '120ms' }}>
+          {tab === 'profile' && <ProfileTab config={config} saveConfig={saveConfig} showToast={showToast} />}
+          {tab === 'links' && <LinksTab config={config} saveConfig={saveConfig} showToast={showToast} />}
+          {tab === 'themes' && <ThemesTab config={config} saveConfig={saveConfig} showToast={showToast} />}
+          {tab === 'audio' && <AudioTab config={config} saveConfig={saveConfig} showToast={showToast} />}
+          {tab === 'settings' && <SettingsTab config={config} saveConfig={saveConfig} showToast={showToast} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// PROFILE TAB
+// ----------------------------------------------------------------------------
+function ProfileTab({ config, saveConfig, showToast }) {
+  const [draft, setDraft] = useState(config.profile);
+  const [uploading, setUploading] = useState(false);
+
+  const handleSave = async () => {
+    await saveConfig({ profile: draft });
+    showToast('Profile saved');
+  };
+
+  const handleUpload = async (file) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const path = `avatars/${Date.now()}_${file.name}`;
+      const snap = await storage.ref(path).put(file);
+      const url = await snap.ref.getDownloadURL();
+      setDraft(d => ({ ...d, avatar: url }));
+      showToast('Avatar uploaded');
+    } catch (err) {
+      console.error(err);
+      showToast('Upload failed');
+    }
+    setUploading(false);
+  };
+
+  return (
+    <div className="card p-6 space-y-5">
+      <h2 className="font-display text-xl mb-2" style={{ color: 'var(--primary)' }}>Profile</h2>
+
+      <div className="grid sm:grid-cols-[180px,1fr] gap-6">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-32 h-32 rounded-full overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
+            <img
+              src={draft.avatar || `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' fill='%23222'/><text x='100' y='130' text-anchor='middle' font-family='Cinzel' font-size='90' fill='%23d4af37' font-weight='700'>${(draft.name?.[0]||'g').toUpperCase()}</text></svg>`)}`}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <label className="btn-ghost px-3 py-2 rounded-lg text-xs cursor-pointer flex items-center gap-2">
+            <Icon name="upload" size={14} />
+            {uploading ? 'uploading...' : 'upload'}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handleUpload(e.target.files?.[0])}
+            />
+          </label>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">Name</label>
+            <input
+              className="input"
+              value={draft.name}
+              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+              placeholder="Your display name"
+              maxLength={40}
+            />
+          </div>
+          <div>
+            <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">Title / Tagline</label>
+            <input
+              className="input"
+              value={draft.title}
+              onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+              placeholder="Short tagline"
+              maxLength={60}
+            />
+          </div>
+          <div>
+            <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">Bio</label>
+            <textarea
+              className="input"
+              rows={3}
+              value={draft.bio}
+              onChange={(e) => setDraft({ ...draft, bio: e.target.value })}
+              placeholder="A few words about you"
+              maxLength={200}
+            />
+          </div>
+          <div>
+            <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">Avatar URL (alternative)</label>
+            <input
+              className="input"
+              value={draft.avatar}
+              onChange={(e) => setDraft({ ...draft, avatar: e.target.value })}
+              placeholder="https://..."
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end pt-3">
+        <button onClick={handleSave} className="btn-primary px-6 py-2.5 rounded-xl text-sm">
+          Save changes
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// LINKS TAB
+// ----------------------------------------------------------------------------
+function LinksTab({ config, saveConfig, showToast }) {
+  const [links, setLinks] = useState(config.links || []);
+
+  useEffect(() => { setLinks(config.links || []); }, [config.links]);
+
+  const addLink = () => {
+    setLinks([...links, { id: uid(), type: 'tiktok', label: '', url: '' }]);
+  };
+  const updateLink = (id, patch) => {
+    setLinks(links.map(l => l.id === id ? { ...l, ...patch } : l));
+  };
+  const removeLink = (id) => {
+    setLinks(links.filter(l => l.id !== id));
+  };
+  const move = (idx, dir) => {
+    const next = [...links];
+    const target = idx + dir;
+    if (target < 0 || target >= next.length) return;
+    [next[idx], next[target]] = [next[target], next[idx]];
+    setLinks(next);
+  };
+
+  const save = async () => {
+    await saveConfig({ links });
+    showToast('Links saved');
+  };
+
+  return (
+    <div className="card p-6 space-y-4">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="font-display text-xl" style={{ color: 'var(--primary)' }}>Social Links</h2>
+        <button onClick={addLink} className="btn-ghost px-3 py-2 rounded-lg text-sm flex items-center gap-2">
+          <Icon name="plus" size={14} /> Add
+        </button>
+      </div>
+
+      {links.length === 0 && (
+        <div className="text-center py-8 opacity-50 text-sm">no links — click Add</div>
+      )}
+
+      <div className="space-y-3">
+        {links.map((link, idx) => {
+          const preset = SOCIAL_PRESETS.find(p => p.id === link.type) || SOCIAL_PRESETS[SOCIAL_PRESETS.length-1];
+          return (
+            <div key={link.id} className="p-3 rounded-xl space-y-2" style={{ background: 'var(--surface-2)' }}>
+              <div className="flex gap-2 items-center">
+                <div style={{ color: 'var(--primary)' }}><Icon name={preset.icon} size={20} /></div>
+                <select
+                  className="input"
+                  style={{ flex: '0 0 130px' }}
+                  value={link.type}
+                  onChange={(e) => updateLink(link.id, { type: e.target.value })}
+                >
+                  {SOCIAL_PRESETS.map(p => (
+                    <option key={p.id} value={p.id} style={{ background: 'var(--surface)' }}>{p.label}</option>
+                  ))}
+                </select>
+                <input
+                  className="input"
+                  value={link.label}
+                  onChange={(e) => updateLink(link.id, { label: e.target.value })}
+                  placeholder={preset.label}
+                  maxLength={30}
+                />
+                <div className="flex gap-1">
+                  <button onClick={() => move(idx, -1)} className="btn-ghost w-9 h-9 rounded-lg flex items-center justify-center" title="up">
+                    <svg width="14" height="14" viewBox="0 0 24 24"><path d="M5 15l7-7 7 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/></svg>
+                  </button>
+                  <button onClick={() => move(idx, 1)} className="btn-ghost w-9 h-9 rounded-lg flex items-center justify-center" title="down">
+                    <svg width="14" height="14" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/></svg>
+                  </button>
+                  <button onClick={() => removeLink(link.id)} className="btn-ghost w-9 h-9 rounded-lg flex items-center justify-center" style={{ color: 'var(--danger)' }} title="delete">
+                    <Icon name="trash" size={14} />
+                  </button>
+                </div>
+              </div>
+              <input
+                className="input"
+                value={link.url}
+                onChange={(e) => updateLink(link.id, { url: e.target.value })}
+                placeholder={preset.placeholder}
+                type="url"
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="flex justify-end pt-2">
+        <button onClick={save} className="btn-primary px-6 py-2.5 rounded-xl text-sm">Save links</button>
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// THEMES TAB
+// ----------------------------------------------------------------------------
+function ThemesTab({ config, saveConfig, showToast }) {
+  const [theme, setTheme] = useState(config.theme);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => { setTheme(config.theme); }, [config.theme]);
+
+  const applyAndSave = async (next) => {
+    setTheme(next);
+    await saveConfig({ theme: next });
+    showToast('Theme applied');
+  };
+
+  const uploadBg = async (file) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const path = `backgrounds/${Date.now()}_${file.name}`;
+      const snap = await storage.ref(path).put(file);
+      const url = await snap.ref.getDownloadURL();
+      await applyAndSave({ ...theme, backgroundImage: url });
+    } catch (e) {
+      console.error(e);
+      showToast('Upload failed');
+    }
+    setUploading(false);
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="card p-6">
+        <h2 className="font-display text-xl mb-4" style={{ color: 'var(--primary)' }}>Theme Presets</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {Object.entries(THEMES).map(([key, t]) => (
+            <div
+              key={key}
+              className={`theme-swatch ${theme.preset === key ? 'active' : ''}`}
+              style={{ background: t.bg, border: theme.preset === key ? `2px solid ${t.primary}` : `2px solid transparent` }}
+              onClick={() => applyAndSave({ ...theme, preset: key })}
+            >
+              <div className="flex gap-1 mb-2">
+                <div style={{ width: 14, height: 14, borderRadius: 4, background: t.primary }} />
+                <div style={{ width: 14, height: 14, borderRadius: 4, background: t.accent }} />
+                <div style={{ width: 14, height: 14, borderRadius: 4, background: t.surface }} />
+              </div>
+              <div className="text-xs font-medium" style={{ color: t.text }}>{t.name}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <CustomThemeEditor
+        theme={theme}
+        onApply={(custom) => applyAndSave({ ...theme, preset: 'custom', custom })}
+        isActive={theme.preset === 'custom'}
+      />
+
+      <div className="card p-6 space-y-4">
+        <h2 className="font-display text-xl" style={{ color: 'var(--primary)' }}>Background</h2>
+        <div>
+          <label className="block text-xs uppercase tracking-wider opacity-60 mb-2">Effect</label>
+          <div className="flex gap-2 flex-wrap">
+            {['aurora', 'particles', 'none'].map(eff => (
+              <button
+                key={eff}
+                onClick={() => applyAndSave({ ...theme, backgroundEffect: eff })}
+                className={`px-4 py-2 rounded-lg text-sm ${theme.backgroundEffect === eff ? 'btn-primary' : 'btn-ghost'}`}
+              >
+                {eff}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs uppercase tracking-wider opacity-60 mb-2">Background image</label>
+          <div className="flex gap-2">
+            <input
+              className="input"
+              value={theme.backgroundImage || ''}
+              onChange={(e) => setTheme({ ...theme, backgroundImage: e.target.value })}
+              placeholder="https://... or upload"
+            />
+            <label className="btn-ghost px-4 rounded-xl text-sm cursor-pointer flex items-center gap-2 whitespace-nowrap">
+              <Icon name="upload" size={14} /> {uploading ? '...' : 'upload'}
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => uploadBg(e.target.files?.[0])} />
+            </label>
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs uppercase tracking-wider opacity-60 mb-2">
+            Overlay darkness <span className="opacity-80 ml-2 font-mono">{Math.round((theme.backgroundOverlay ?? 0.6) * 100)}%</span>
+          </label>
+          <input
+            type="range"
+            min="0" max="1" step="0.05"
+            value={theme.backgroundOverlay ?? 0.6}
+            onChange={(e) => setTheme({ ...theme, backgroundOverlay: parseFloat(e.target.value) })}
+            className="w-full"
+            style={{ accentColor: 'var(--primary)' }}
+          />
+        </div>
+        <div className="flex justify-end gap-2">
+          {theme.backgroundImage && (
+            <button onClick={() => applyAndSave({ ...theme, backgroundImage: '' })} className="btn-ghost px-4 py-2 rounded-xl text-sm">
+              Remove
+            </button>
+          )}
+          <button onClick={() => applyAndSave(theme)} className="btn-primary px-6 py-2 rounded-xl text-sm">Apply</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CustomThemeEditor({ theme, onApply, isActive }) {
+  const init = theme.custom || THEMES.midnight_galaxy;
+  const [custom, setCustom] = useState({
+    ...init,
+    name: init.name || 'Custom'
+  });
+
+  const fields = [
+    { key: 'bg', label: 'Background' },
+    { key: 'surface', label: 'Surface' },
+    { key: 'surface2', label: 'Surface 2' },
+    { key: 'primary', label: 'Primary' },
+    { key: 'accent', label: 'Accent' },
+    { key: 'text', label: 'Text' },
+    { key: 'textSecondary', label: 'Text Secondary' }
+  ];
+
+  const handleApply = () => {
+    const derived = {
+      ...custom,
+      textTertiary: custom.textTertiary || custom.textSecondary,
+      border: `${custom.primary}1f`,
+      primarySoft: `${custom.primary}26`
+    };
+    onApply(derived);
+  };
+
+  return (
+    <div className={`card p-6 ${isActive ? '' : ''}`}>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-display text-xl" style={{ color: 'var(--primary)' }}>Custom Theme</h2>
+        {isActive && <span className="text-xs px-2 py-1 rounded" style={{ background: 'var(--primary)', color: 'var(--bg)' }}>active</span>}
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+        {fields.map(f => (
+          <div key={f.key}>
+            <label className="block text-xs opacity-60 mb-1">{f.label}</label>
+            <div className="flex gap-2 items-center">
+              <input
+                type="color"
+                value={custom[f.key] || '#000000'}
+                onChange={(e) => setCustom({ ...custom, [f.key]: e.target.value })}
+                className="w-10 h-10 rounded cursor-pointer"
+                style={{ background: 'transparent', border: '1px solid var(--border)' }}
+              />
+              <input
+                className="input font-mono text-xs"
+                value={custom[f.key] || ''}
+                onChange={(e) => setCustom({ ...custom, [f.key]: e.target.value })}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-end">
+        <button onClick={handleApply} className="btn-primary px-6 py-2 rounded-xl text-sm">
+          Apply custom
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// AUDIO TAB
+// ----------------------------------------------------------------------------
+function AudioTab({ config, saveConfig, showToast }) {
+  const [audio, setAudio] = useState(config.audio);
+  const [uploading, setUploading] = useState(null);
+  const previewRef = useRef(null);
+
+  useEffect(() => { setAudio(config.audio); }, [config.audio]);
+
+  const uploadAudio = async (file, key) => {
+    if (!file) return;
+    setUploading(key);
+    try {
+      const path = `audio/${Date.now()}_${file.name}`;
+      const snap = await storage.ref(path).put(file);
+      const url = await snap.ref.getDownloadURL();
+      setAudio(a => ({ ...a, [key]: url }));
+      showToast('Audio uploaded');
+    } catch (e) {
+      console.error(e);
+      showToast('Upload failed');
+    }
+    setUploading(null);
+  };
+
+  const save = async () => {
+    await saveConfig({ audio });
+    showToast('Audio settings saved');
+  };
+
+  return (
+    <div className="card p-6 space-y-5">
+      <h2 className="font-display text-xl mb-2" style={{ color: 'var(--primary)' }}>Audio</h2>
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-xs uppercase tracking-wider opacity-60 mb-2">Background music</label>
+          <div className="flex gap-2 mb-2">
+            <input
+              className="input"
+              value={audio.backgroundUrl || ''}
+              onChange={(e) => setAudio({ ...audio, backgroundUrl: e.target.value })}
+              placeholder="https://... .mp3"
+            />
+            <label className="btn-ghost px-4 rounded-xl text-sm cursor-pointer flex items-center gap-2 whitespace-nowrap">
+              <Icon name="upload" size={14} /> {uploading === 'backgroundUrl' ? '...' : 'upload'}
+              <input type="file" accept="audio/*" className="hidden" onChange={(e) => uploadAudio(e.target.files?.[0], 'backgroundUrl')} />
+            </label>
+          </div>
+          {audio.backgroundUrl && (
+            <audio ref={previewRef} src={audio.backgroundUrl} controls className="w-full" style={{ borderRadius: 8 }} />
+          )}
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs uppercase tracking-wider opacity-60 mb-2">
+              Volume <span className="opacity-80 ml-2 font-mono">{Math.round((audio.volume ?? 0.4) * 100)}%</span>
+            </label>
+            <input
+              type="range" min="0" max="1" step="0.05"
+              value={audio.volume ?? 0.4}
+              onChange={(e) => setAudio({ ...audio, volume: parseFloat(e.target.value) })}
+              className="w-full"
+              style={{ accentColor: 'var(--primary)' }}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={audio.autoplay !== false}
+                onChange={(e) => setAudio({ ...audio, autoplay: e.target.checked })}
+                style={{ accentColor: 'var(--primary)' }}
+              />
+              <span className="text-sm">Autoplay after entry</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={audio.loop !== false}
+                onChange={(e) => setAudio({ ...audio, loop: e.target.checked })}
+                style={{ accentColor: 'var(--primary)' }}
+              />
+              <span className="text-sm">Loop</span>
+            </label>
+          </div>
+        </div>
+
+        <div className="text-xs opacity-50 pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
+          Note: browsers block autoplay until the user clicks once — the "click to enter" overlay handles that.
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <button onClick={save} className="btn-primary px-6 py-2.5 rounded-xl text-sm">Save audio</button>
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// SETTINGS TAB
+// ----------------------------------------------------------------------------
+function SettingsTab({ config, saveConfig, showToast }) {
+  const [current, setCurrent] = useState('');
+  const [next, setNext] = useState('');
+  const [confirmCode, setConfirmCode] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const changePassword = async (e) => {
+    e.preventDefault();
+    if (next.length < 3) return showToast('Code too short (min 3 chars)');
+    if (next !== confirmCode) return showToast('Codes do not match');
+    setBusy(true);
+    const curHash = await sha256(current);
+    if (curHash !== (config.auth?.passwordHash || DEFAULT_PASSWORD_HASH)) {
+      showToast('Current code is wrong');
+      setBusy(false);
+      return;
+    }
+    const newHash = await sha256(next);
+    await saveConfig({ auth: { passwordHash: newHash } });
+    setCurrent(''); setNext(''); setConfirmCode('');
+    showToast('Code changed');
+    setBusy(false);
+  };
+
+  const exportData = () => {
+    const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `gnmc-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="card p-6 space-y-4">
+        <h2 className="font-display text-xl" style={{ color: 'var(--primary)' }}>Change secret code</h2>
+        <form onSubmit={changePassword} className="space-y-3 max-w-md">
+          <input className="input" type="password" placeholder="Current code" value={current} onChange={e => setCurrent(e.target.value)} />
+          <input className="input" type="password" placeholder="New code" value={next} onChange={e => setNext(e.target.value)} />
+          <input className="input" type="password" placeholder="Confirm new code" value={confirmCode} onChange={e => setConfirmCode(e.target.value)} />
+          <button type="submit" disabled={busy} className="btn-primary px-6 py-2.5 rounded-xl text-sm">
+            {busy ? 'updating...' : 'Update code'}
+          </button>
+        </form>
+      </div>
+
+      <div className="card p-6 space-y-3">
+        <h2 className="font-display text-xl" style={{ color: 'var(--primary)' }}>Backup</h2>
+        <p className="text-sm opacity-60">Download a JSON file with all your settings.</p>
+        <div>
+          <button onClick={exportData} className="btn-ghost px-5 py-2 rounded-xl text-sm flex items-center gap-2 inline-flex">
+            <Icon name="upload" size={14} className="rotate-180" /> Export JSON
+          </button>
+        </div>
+      </div>
+
+      <div className="card p-6 space-y-3" style={{ borderColor: 'rgba(239, 71, 111, 0.3)' }}>
+        <h2 className="font-display text-xl" style={{ color: 'var(--danger)' }}>Danger zone</h2>
+        <p className="text-sm opacity-60">Reset all settings to defaults.</p>
+        <button
+          onClick={async () => {
+            if (!window.confirm('Reset everything to defaults?')) return;
+            await saveConfig(DEFAULT_CONFIG);
+            showToast('Reset complete');
+          }}
+          className="btn-danger px-5 py-2 rounded-xl text-sm"
+        >
+          Reset to defaults
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// MOUNT
+// ============================================================================
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
