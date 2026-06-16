@@ -27,15 +27,15 @@
       --bg: #0a0a0f;
       --surface: #14141f;
       --surface-2: #1c1c2b;
-      --border: rgba(212, 175, 55, 0.12);
+      --border: rgba(212, 175, 55, 0.18);
       --primary: #d4af37;
-      --primary-soft: rgba(212, 175, 55, 0.15);
+      --primary-soft: rgba(212, 175, 55, 0.18);
       --accent: #9d4edd;
       --text: #f0f0f5;
-      --text-secondary: #a8a8c0;
-      --text-tertiary: #6b6b85;
-      --danger: #ef476f;
-      --success: #06d6a0;
+      --text-secondary: #b8b8d0;
+      --text-tertiary: #9090a8;
+      --danger: #ff6b6b;
+      --success: #34d399;
       --bg-image: none;
       --bg-overlay: 0.6;
     }
@@ -360,17 +360,46 @@
     }
 
     /* Focus visible */
+    *:focus { outline: none; }
     *:focus-visible {
       outline: 2px solid var(--primary);
-      outline-offset: 2px;
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+
+    /* Skip link (WCAG 2.4.1) */
+    .skip-link {
+      position: absolute;
+      left: -9999px;
+      top: 0;
+      z-index: 999;
+      background: var(--primary);
+      color: var(--bg);
+      padding: 12px 20px;
+      border-radius: 0 0 12px 0;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .skip-link:focus { left: 0; }
+
+    /* Visually hidden (for screen reader text) */
+    .sr-only {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+      border: 0;
     }
   </style>
 </head>
 <body>
+  <a href="#main" class="skip-link">Skip to main content</a>
   <div id="root">
-    <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;font-family:'Cinzel',serif;color:#d4af37;">
+    <div role="status" aria-live="polite" aria-label="Loading" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;font-family:'Cinzel',serif;color:#d4af37;">
       <div class="spinner"></div>
-      <div style="letter-spacing:0.4em;font-size:12px;text-transform:uppercase;opacity:0.6;">loading</div>
+      <div style="letter-spacing:0.4em;font-size:12px;text-transform:uppercase;opacity:0.7;">loading</div>
     </div>
   </div>
 
@@ -476,86 +505,87 @@ const SOCIAL_PRESETS = [
 // ============================================================================
 // THEMES
 // ============================================================================
+// Contrast-tuned: tertiary text ≥ 4.5:1 on bg, secondary ≥ 7:1 (WCAG AA)
 const THEMES = {
   midnight_galaxy: {
     name: 'Midnight Galaxy',
     bg: '#0a0a0f', surface: '#14141f', surface2: '#1c1c2b',
     primary: '#d4af37', accent: '#9d4edd',
-    text: '#f0f0f5', textSecondary: '#a8a8c0', textTertiary: '#6b6b85',
-    border: 'rgba(212, 175, 55, 0.12)',
-    primarySoft: 'rgba(212, 175, 55, 0.15)'
+    text: '#f0f0f5', textSecondary: '#b8b8d0', textTertiary: '#9090a8',
+    border: 'rgba(212, 175, 55, 0.18)',
+    primarySoft: 'rgba(212, 175, 55, 0.18)'
   },
   cyberpunk: {
     name: 'Cyberpunk',
     bg: '#0d0014', surface: '#1a0028', surface2: '#25003d',
-    primary: '#ff006e', accent: '#00f5ff',
-    text: '#f5e6ff', textSecondary: '#c4a3d4', textTertiary: '#7a6588',
-    border: 'rgba(255, 0, 110, 0.18)',
-    primarySoft: 'rgba(255, 0, 110, 0.15)'
+    primary: '#ff4d8d', accent: '#5cf0ff',
+    text: '#f5e6ff', textSecondary: '#d4b8e0', textTertiary: '#a890b8',
+    border: 'rgba(255, 77, 141, 0.22)',
+    primarySoft: 'rgba(255, 77, 141, 0.18)'
   },
   royal_velvet: {
     name: 'Royal Velvet',
     bg: '#1a0824', surface: '#291435', surface2: '#3a1f4a',
-    primary: '#e9b949', accent: '#bd5dff',
-    text: '#fbe9ff', textSecondary: '#cba7d6', textTertiary: '#8a6695',
-    border: 'rgba(233, 185, 73, 0.15)',
-    primarySoft: 'rgba(233, 185, 73, 0.15)'
+    primary: '#e9b949', accent: '#cf7eff',
+    text: '#fbe9ff', textSecondary: '#dab8e5', textTertiary: '#b094bd',
+    border: 'rgba(233, 185, 73, 0.20)',
+    primarySoft: 'rgba(233, 185, 73, 0.18)'
   },
   crimson_night: {
     name: 'Crimson Night',
     bg: '#120606', surface: '#1f0a0a', surface2: '#2b0f0f',
-    primary: '#e94f4f', accent: '#ffba6b',
-    text: '#fde8e8', textSecondary: '#cba5a5', textTertiary: '#806464',
-    border: 'rgba(233, 79, 79, 0.18)',
-    primarySoft: 'rgba(233, 79, 79, 0.12)'
+    primary: '#ff6b6b', accent: '#ffba6b',
+    text: '#fde8e8', textSecondary: '#dab4b4', textTertiary: '#b08a8a',
+    border: 'rgba(255, 107, 107, 0.22)',
+    primarySoft: 'rgba(255, 107, 107, 0.15)'
   },
   ocean_deep: {
     name: 'Ocean Deep',
     bg: '#031c2b', surface: '#0a2e44', surface2: '#0f3d59',
     primary: '#5eead4', accent: '#a3bffa',
-    text: '#e0f7ff', textSecondary: '#9fc4d6', textTertiary: '#5c8499',
-    border: 'rgba(94, 234, 212, 0.16)',
-    primarySoft: 'rgba(94, 234, 212, 0.12)'
+    text: '#e0f7ff', textSecondary: '#b8d4e0', textTertiary: '#8aaab8',
+    border: 'rgba(94, 234, 212, 0.20)',
+    primarySoft: 'rgba(94, 234, 212, 0.15)'
   },
   dark_forest: {
     name: 'Dark Forest',
     bg: '#0a1410', surface: '#13241c', surface2: '#1c3327',
-    primary: '#c9a96e', accent: '#7ec850',
-    text: '#e8f0e5', textSecondary: '#9eb59a', textTertiary: '#5e7058',
-    border: 'rgba(201, 169, 110, 0.15)',
-    primarySoft: 'rgba(201, 169, 110, 0.12)'
+    primary: '#d4b988', accent: '#a3e08a',
+    text: '#e8f0e5', textSecondary: '#b8c8b0', textTertiary: '#8aa080',
+    border: 'rgba(212, 185, 136, 0.20)',
+    primarySoft: 'rgba(212, 185, 136, 0.15)'
   },
   sunset_dunes: {
     name: 'Sunset Dunes',
     bg: '#1a0e08', surface: '#2a1810', surface2: '#3a2418',
-    primary: '#f4a261', accent: '#e76f51',
-    text: '#fdf2e9', textSecondary: '#d9b89a', textTertiary: '#8a6d52',
-    border: 'rgba(244, 162, 97, 0.16)',
-    primarySoft: 'rgba(244, 162, 97, 0.12)'
+    primary: '#f4a261', accent: '#ff8a65',
+    text: '#fdf2e9', textSecondary: '#e0c4a8', textTertiary: '#b09578',
+    border: 'rgba(244, 162, 97, 0.20)',
+    primarySoft: 'rgba(244, 162, 97, 0.15)'
   },
   sakura: {
     name: 'Sakura',
     bg: '#1a0b14', surface: '#2a1421', surface2: '#3a1d2e',
     primary: '#f7a1c4', accent: '#ffd6a5',
-    text: '#fce8f1', textSecondary: '#d4a8bd', textTertiary: '#85607a',
-    border: 'rgba(247, 161, 196, 0.18)',
-    primarySoft: 'rgba(247, 161, 196, 0.14)'
+    text: '#fce8f1', textSecondary: '#e0b8cc', textTertiary: '#b08aa0',
+    border: 'rgba(247, 161, 196, 0.22)',
+    primarySoft: 'rgba(247, 161, 196, 0.18)'
   },
   mono_chrome: {
     name: 'Mono Chrome',
     bg: '#0a0a0a', surface: '#171717', surface2: '#222222',
-    primary: '#fafafa', accent: '#a3a3a3',
-    text: '#fafafa', textSecondary: '#a3a3a3', textTertiary: '#666666',
-    border: 'rgba(250, 250, 250, 0.10)',
-    primarySoft: 'rgba(250, 250, 250, 0.08)'
+    primary: '#fafafa', accent: '#bdbdbd',
+    text: '#fafafa', textSecondary: '#c8c8c8', textTertiary: '#9a9a9a',
+    border: 'rgba(250, 250, 250, 0.14)',
+    primarySoft: 'rgba(250, 250, 250, 0.10)'
   },
   emerald_gold: {
     name: 'Emerald & Gold',
     bg: '#04140d', surface: '#0b2419', surface2: '#103324',
-    primary: '#d4af37', accent: '#10b981',
-    text: '#ecfdf5', textSecondary: '#a1c8b4', textTertiary: '#5f7d6e',
-    border: 'rgba(212, 175, 55, 0.16)',
-    primarySoft: 'rgba(212, 175, 55, 0.12)'
+    primary: '#e0bf48', accent: '#34d399',
+    text: '#ecfdf5', textSecondary: '#b8d4c5', textTertiary: '#8aa898',
+    border: 'rgba(224, 191, 72, 0.20)',
+    primarySoft: 'rgba(224, 191, 72, 0.15)'
   }
 };
 
@@ -693,9 +723,9 @@ function App() {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center flex-col gap-4">
-        <div className="spinner"></div>
-        <div className="font-display text-xs tracking-[0.4em] uppercase opacity-60">loading</div>
+      <div role="status" aria-live="polite" aria-label="Loading site" className="fixed inset-0 flex items-center justify-center flex-col gap-4">
+        <div className="spinner" aria-hidden="true"></div>
+        <div className="font-display text-xs tracking-[0.4em] uppercase" style={{ color: 'var(--text-secondary)' }}>loading</div>
       </div>
     );
   }
@@ -741,7 +771,12 @@ function App() {
         />
       )}
 
-      {toast && <div className="snackbar text-sm">{toast}</div>}
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {toast || ''}
+      </div>
+      {toast && (
+        <div className="snackbar text-sm" aria-hidden="true">{toast}</div>
+      )}
     </>
   );
 }
@@ -788,24 +823,32 @@ function BackgroundAudio({ src, volume, loop }) {
 // ENTRY OVERLAY (click to enter — solves autoplay restriction)
 // ============================================================================
 function EntryOverlay({ config, onEnter }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEnter(); } };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onEnter]);
+
   return (
-    <div
-      className="fixed inset-0 flex items-center justify-center cursor-pointer fade-in"
-      style={{ zIndex: 40 }}
+    <button
+      type="button"
+      className="fixed inset-0 flex items-center justify-center fade-in"
+      style={{ zIndex: 40, background: 'transparent', border: 'none', cursor: 'pointer', width: '100vw', height: '100dvh' }}
       onClick={onEnter}
+      aria-label={`Enter ${config.profile.name}'s profile`}
     >
       <div className="text-center">
-        <div className="font-display text-[10px] sm:text-xs tracking-[0.6em] uppercase opacity-50 mb-6">
+        <div className="font-display text-[10px] sm:text-xs tracking-[0.6em] uppercase mb-6" style={{ color: 'var(--text-tertiary)' }}>
           click anywhere
         </div>
         <div className="font-display text-3xl sm:text-5xl" style={{ color: 'var(--primary)' }}>
           enter
         </div>
-        <div className="mt-8 opacity-40 text-xs font-mono">
+        <div className="mt-8 text-xs font-mono" style={{ color: 'var(--text-tertiary)' }}>
           {config.profile.name}
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -837,21 +880,27 @@ function PublicProfile({ config, onSecretTrigger }) {
   const validLinks = (config.links || []).filter(l => l.url && l.url.trim());
 
   return (
-    <div className="min-h-[100dvh] flex flex-col items-center px-4 py-12 sm:py-16">
+    <main id="main" className="min-h-[100dvh] flex flex-col items-center px-4 py-12 sm:py-16">
       <div className="w-full max-w-md fade-up">
         {/* Avatar */}
         <div className="flex justify-center mb-6">
-          <div className="avatar-ring" style={{ width: '140px', height: '140px' }}>
+          <button
+            type="button"
+            className="avatar-ring"
+            style={{ width: '140px', height: '140px', border: 'none', cursor: 'pointer', padding: '4px' }}
+            onClick={handleAvatarClick}
+            aria-label={`${config.profile.name} avatar — tap multiple times for admin access`}
+          >
             <div className="avatar-inner w-full h-full">
               <img
                 src={avatarSrc}
-                alt={config.profile.name}
+                alt=""
+                aria-hidden="true"
                 className="avatar-img"
-                onClick={handleAvatarClick}
                 draggable={false}
               />
             </div>
-          </div>
+          </button>
         </div>
 
         {/* Name + bio */}
@@ -878,40 +927,47 @@ function PublicProfile({ config, onSecretTrigger }) {
         )}
 
         {/* Links */}
-        <div className="space-y-3">
-          {validLinks.length === 0 && (
-            <div className="text-center text-sm opacity-40 py-8">
-              no links yet
-            </div>
-          )}
-          {validLinks.map((link, i) => {
-            const preset = SOCIAL_PRESETS.find(p => p.id === link.type) || SOCIAL_PRESETS[SOCIAL_PRESETS.length-1];
-            return (
-              <a
-                key={link.id}
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="link-card flex items-center gap-4 px-5 py-4 rounded-2xl fade-up"
-                style={{
-                  background: 'var(--surface)',
-                  border: '1px solid var(--border)',
-                  animationDelay: `${240 + i * 50}ms`
-                }}
-              >
-                <div className="flex-shrink-0" style={{ color: 'var(--primary)' }}>
-                  <Icon name={preset.icon} size={22} />
-                </div>
-                <div className="flex-1 font-medium text-sm" style={{ color: 'var(--text)' }}>
-                  {link.label || preset.label}
-                </div>
-                <div className="opacity-30" style={{ color: 'var(--text-secondary)' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/></svg>
-                </div>
-              </a>
-            );
-          })}
-        </div>
+        <nav aria-label={`${config.profile.name} social links`}>
+          <ul className="space-y-3 list-none p-0 m-0">
+            {validLinks.length === 0 && (
+              <li className="text-center text-sm py-8" style={{ color: 'var(--text-tertiary)' }}>
+                no links yet
+              </li>
+            )}
+            {validLinks.map((link, i) => {
+              const preset = SOCIAL_PRESETS.find(p => p.id === link.type) || SOCIAL_PRESETS[SOCIAL_PRESETS.length-1];
+              const linkLabel = link.label || preset.label;
+              return (
+                <li key={link.id}>
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="link-card flex items-center gap-4 px-5 py-4 rounded-2xl fade-up"
+                    style={{
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      animationDelay: `${240 + i * 50}ms`,
+                      minHeight: 56,
+                      color: 'var(--text)'
+                    }}
+                    aria-label={`${linkLabel} (opens in new tab)`}
+                  >
+                    <span className="flex-shrink-0" style={{ color: 'var(--primary)' }} aria-hidden="true">
+                      <Icon name={preset.icon} size={22} />
+                    </span>
+                    <span className="flex-1 font-medium text-sm">
+                      {linkLabel}
+                    </span>
+                    <span aria-hidden="true" style={{ color: 'var(--text-tertiary)' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/></svg>
+                    </span>
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
 
         {/* Footer */}
         <div className="text-center mt-12 fade-up" style={{ animationDelay: '600ms' }}>
@@ -922,11 +978,11 @@ function PublicProfile({ config, onSecretTrigger }) {
       </div>
 
       {clickCount >= 5 && clickCount < 10 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 font-mono text-xs opacity-50">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 font-mono text-xs" style={{ color: 'var(--text-tertiary)' }} aria-live="polite">
           {clickCount}/10
         </div>
       )}
-    </div>
+    </main>
   );
 }
 
@@ -938,8 +994,18 @@ function CodeModal({ onClose, onSubmit }) {
   const [error, setError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef(null);
+  const previousFocus = useRef(null);
 
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  useEffect(() => {
+    previousFocus.current = document.activeElement;
+    inputRef.current?.focus();
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      previousFocus.current?.focus?.();
+    };
+  }, [onClose]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -951,6 +1017,7 @@ function CodeModal({ onClose, onSubmit }) {
       setError(true);
       setCode('');
       setSubmitting(false);
+      inputRef.current?.focus();
       setTimeout(() => setError(false), 600);
     }
   };
@@ -958,6 +1025,10 @@ function CodeModal({ onClose, onSubmit }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="code-modal-title"
+        aria-describedby="code-modal-desc"
         className="modal-content card p-7 w-full max-w-sm"
         onClick={(e) => e.stopPropagation()}
         style={{ animation: error ? 'shake 0.4s' : undefined }}
@@ -966,12 +1037,16 @@ function CodeModal({ onClose, onSubmit }) {
 
         <div className="flex items-center gap-3 mb-2">
           <div style={{ color: 'var(--primary)' }}><Icon name="lock" size={22} /></div>
-          <div className="font-display text-lg" style={{ color: 'var(--text)' }}>secret</div>
+          <h2 id="code-modal-title" className="font-display text-lg" style={{ color: 'var(--text)' }}>secret</h2>
         </div>
-        <p className="text-xs opacity-60 mb-5">enter the secret code</p>
+        <p id="code-modal-desc" className="text-xs mb-5" style={{ color: 'var(--text-secondary)' }}>
+          enter the secret code
+        </p>
 
         <form onSubmit={handleSubmit}>
+          <label htmlFor="secret-code-input" className="sr-only">Secret code</label>
           <input
+            id="secret-code-input"
             ref={inputRef}
             type="password"
             inputMode="numeric"
@@ -980,14 +1055,21 @@ function CodeModal({ onClose, onSubmit }) {
             onChange={(e) => setCode(e.target.value)}
             placeholder="••••"
             className="input font-mono text-center text-2xl tracking-[0.5em]"
+            aria-invalid={error}
+            aria-describedby={error ? 'secret-error' : undefined}
             style={{ borderColor: error ? 'var(--danger)' : undefined }}
           />
+          {error && (
+            <p id="secret-error" role="alert" className="text-xs mt-2 text-center" style={{ color: 'var(--danger)' }}>
+              Wrong code, try again
+            </p>
+          )}
           <div className="flex gap-2 mt-5">
             <button type="button" onClick={onClose} className="btn-ghost flex-1 py-3 rounded-xl text-sm font-medium">
               cancel
             </button>
             <button type="submit" disabled={submitting} className="btn-primary flex-1 py-3 rounded-xl text-sm">
-              {submitting ? 'checking...' : 'enter'}
+              {submitting ? 'checking…' : 'enter'}
             </button>
           </div>
         </form>
@@ -1011,31 +1093,37 @@ function Dashboard({ config, saveConfig, showToast, onExit }) {
   const [tab, setTab] = useState('profile');
 
   return (
-    <div className="min-h-[100dvh] py-6 sm:py-10 px-4 sm:px-6">
+    <main id="main" className="min-h-[100dvh] py-6 sm:py-10 px-4 sm:px-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8 fade-up">
           <div>
-            <div className="font-mono text-[10px] tracking-[0.4em] uppercase opacity-50 mb-1">dashboard</div>
+            <div className="font-mono text-[10px] tracking-[0.4em] uppercase mb-1" style={{ color: 'var(--text-tertiary)' }}>dashboard</div>
             <h1 className="font-display text-2xl sm:text-3xl" style={{ color: 'var(--primary)' }}>
               control panel
             </h1>
           </div>
           <div className="flex gap-2">
-            <button onClick={onExit} className="btn-ghost px-4 py-2 rounded-xl text-sm flex items-center gap-2">
+            <button type="button" onClick={onExit} className="btn-ghost px-4 py-2 rounded-xl text-sm flex items-center gap-2" aria-label="View public profile">
               <Icon name="eye" size={16} /> <span className="hidden sm:inline">view</span>
             </button>
-            <button onClick={() => { onExit(); window.location.reload(); }} className="btn-ghost px-4 py-2 rounded-xl text-sm flex items-center gap-2">
+            <button type="button" onClick={() => { onExit(); window.location.reload(); }} className="btn-ghost px-4 py-2 rounded-xl text-sm flex items-center gap-2" aria-label="Log out of dashboard">
               <Icon name="logout" size={16} /> <span className="hidden sm:inline">logout</span>
             </button>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 overflow-x-auto pb-2 fade-up" style={{ animationDelay: '60ms' }}>
+        <div role="tablist" aria-label="Dashboard sections" className="flex gap-1 mb-6 overflow-x-auto pb-2 fade-up" style={{ animationDelay: '60ms' }}>
           {TABS.map(t => (
             <button
               key={t.id}
+              type="button"
+              role="tab"
+              id={`tab-${t.id}`}
+              aria-selected={tab === t.id}
+              aria-controls={`panel-${t.id}`}
+              tabIndex={tab === t.id ? 0 : -1}
               className={`tab flex items-center gap-2 ${tab === t.id ? 'active' : ''}`}
               onClick={() => setTab(t.id)}
             >
@@ -1046,7 +1134,7 @@ function Dashboard({ config, saveConfig, showToast, onExit }) {
         </div>
 
         {/* Content */}
-        <div className="fade-up" style={{ animationDelay: '120ms' }}>
+        <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} className="fade-up" style={{ animationDelay: '120ms' }}>
           {tab === 'profile' && <ProfileTab config={config} saveConfig={saveConfig} showToast={showToast} />}
           {tab === 'links' && <LinksTab config={config} saveConfig={saveConfig} showToast={showToast} />}
           {tab === 'themes' && <ThemesTab config={config} saveConfig={saveConfig} showToast={showToast} />}
@@ -1054,7 +1142,7 @@ function Dashboard({ config, saveConfig, showToast, onExit }) {
           {tab === 'settings' && <SettingsTab config={config} saveConfig={saveConfig} showToast={showToast} />}
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -1101,11 +1189,12 @@ function ProfileTab({ config, saveConfig, showToast }) {
           </div>
           <label className="btn-ghost px-3 py-2 rounded-lg text-xs cursor-pointer flex items-center gap-2">
             <Icon name="upload" size={14} />
-            {uploading ? 'uploading...' : 'upload'}
+            <span>{uploading ? 'uploading…' : 'upload avatar'}</span>
             <input
               type="file"
               accept="image/*"
-              className="hidden"
+              className="sr-only"
+              aria-label="Upload avatar image"
               onChange={(e) => handleUpload(e.target.files?.[0])}
             />
           </label>
@@ -1113,8 +1202,9 @@ function ProfileTab({ config, saveConfig, showToast }) {
 
         <div className="space-y-3">
           <div>
-            <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">Name</label>
+            <label htmlFor="profile-name" className="block text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>Name</label>
             <input
+              id="profile-name"
               className="input"
               value={draft.name}
               onChange={(e) => setDraft({ ...draft, name: e.target.value })}
@@ -1123,8 +1213,9 @@ function ProfileTab({ config, saveConfig, showToast }) {
             />
           </div>
           <div>
-            <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">Title / Tagline</label>
+            <label htmlFor="profile-title" className="block text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>Title / Tagline</label>
             <input
+              id="profile-title"
               className="input"
               value={draft.title}
               onChange={(e) => setDraft({ ...draft, title: e.target.value })}
@@ -1133,8 +1224,9 @@ function ProfileTab({ config, saveConfig, showToast }) {
             />
           </div>
           <div>
-            <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">Bio</label>
+            <label htmlFor="profile-bio" className="block text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>Bio</label>
             <textarea
+              id="profile-bio"
               className="input"
               rows={3}
               value={draft.bio}
@@ -1144,19 +1236,21 @@ function ProfileTab({ config, saveConfig, showToast }) {
             />
           </div>
           <div>
-            <label className="block text-xs uppercase tracking-wider opacity-60 mb-1">Avatar URL (alternative)</label>
+            <label htmlFor="profile-avatar" className="block text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>Avatar URL (alternative)</label>
             <input
+              id="profile-avatar"
               className="input"
               value={draft.avatar}
               onChange={(e) => setDraft({ ...draft, avatar: e.target.value })}
               placeholder="https://..."
+              type="url"
             />
           </div>
         </div>
       </div>
 
       <div className="flex justify-end pt-3">
-        <button onClick={handleSave} className="btn-primary px-6 py-2.5 rounded-xl text-sm">
+        <button type="button" onClick={handleSave} className="btn-primary px-6 py-2.5 rounded-xl text-sm">
           Save changes
         </button>
       </div>
@@ -1198,23 +1292,28 @@ function LinksTab({ config, saveConfig, showToast }) {
     <div className="card p-6 space-y-4">
       <div className="flex items-center justify-between mb-2">
         <h2 className="font-display text-xl" style={{ color: 'var(--primary)' }}>Social Links</h2>
-        <button onClick={addLink} className="btn-ghost px-3 py-2 rounded-lg text-sm flex items-center gap-2">
-          <Icon name="plus" size={14} /> Add
+        <button type="button" onClick={addLink} className="btn-ghost px-3 py-2 rounded-lg text-sm flex items-center gap-2">
+          <Icon name="plus" size={14} /> <span>Add link</span>
         </button>
       </div>
 
       {links.length === 0 && (
-        <div className="text-center py-8 opacity-50 text-sm">no links — click Add</div>
+        <div className="text-center py-8 text-sm" style={{ color: 'var(--text-tertiary)' }}>No links yet — click Add link to create one</div>
       )}
 
-      <div className="space-y-3">
+      <ul className="space-y-3 list-none p-0">
         {links.map((link, idx) => {
           const preset = SOCIAL_PRESETS.find(p => p.id === link.type) || SOCIAL_PRESETS[SOCIAL_PRESETS.length-1];
+          const labelId = `link-label-${link.id}`;
+          const urlId = `link-url-${link.id}`;
+          const typeId = `link-type-${link.id}`;
           return (
-            <div key={link.id} className="p-3 rounded-xl space-y-2" style={{ background: 'var(--surface-2)' }}>
+            <li key={link.id} className="p-3 rounded-xl space-y-2" style={{ background: 'var(--surface-2)' }}>
               <div className="flex gap-2 items-center">
-                <div style={{ color: 'var(--primary)' }}><Icon name={preset.icon} size={20} /></div>
+                <div style={{ color: 'var(--primary)' }} aria-hidden="true"><Icon name={preset.icon} size={20} /></div>
+                <label htmlFor={typeId} className="sr-only">Platform</label>
                 <select
+                  id={typeId}
                   className="input"
                   style={{ flex: '0 0 130px' }}
                   value={link.type}
@@ -1224,7 +1323,9 @@ function LinksTab({ config, saveConfig, showToast }) {
                     <option key={p.id} value={p.id} style={{ background: 'var(--surface)' }}>{p.label}</option>
                   ))}
                 </select>
+                <label htmlFor={labelId} className="sr-only">Link label</label>
                 <input
+                  id={labelId}
                   className="input"
                   value={link.label}
                   onChange={(e) => updateLink(link.id, { label: e.target.value })}
@@ -1232,31 +1333,33 @@ function LinksTab({ config, saveConfig, showToast }) {
                   maxLength={30}
                 />
                 <div className="flex gap-1">
-                  <button onClick={() => move(idx, -1)} className="btn-ghost w-9 h-9 rounded-lg flex items-center justify-center" title="up">
-                    <svg width="14" height="14" viewBox="0 0 24 24"><path d="M5 15l7-7 7 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/></svg>
+                  <button type="button" onClick={() => move(idx, -1)} disabled={idx === 0} className="btn-ghost w-9 h-9 rounded-lg flex items-center justify-center disabled:opacity-40" aria-label={`Move ${preset.label} link up`}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15l7-7 7 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/></svg>
                   </button>
-                  <button onClick={() => move(idx, 1)} className="btn-ghost w-9 h-9 rounded-lg flex items-center justify-center" title="down">
-                    <svg width="14" height="14" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/></svg>
+                  <button type="button" onClick={() => move(idx, 1)} disabled={idx === links.length - 1} className="btn-ghost w-9 h-9 rounded-lg flex items-center justify-center disabled:opacity-40" aria-label={`Move ${preset.label} link down`}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 9l-7 7-7-7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/></svg>
                   </button>
-                  <button onClick={() => removeLink(link.id)} className="btn-ghost w-9 h-9 rounded-lg flex items-center justify-center" style={{ color: 'var(--danger)' }} title="delete">
+                  <button type="button" onClick={() => removeLink(link.id)} className="btn-ghost w-9 h-9 rounded-lg flex items-center justify-center" style={{ color: 'var(--danger)' }} aria-label={`Delete ${preset.label} link`}>
                     <Icon name="trash" size={14} />
                   </button>
                 </div>
               </div>
+              <label htmlFor={urlId} className="sr-only">URL for {preset.label}</label>
               <input
+                id={urlId}
                 className="input"
                 value={link.url}
                 onChange={(e) => updateLink(link.id, { url: e.target.value })}
                 placeholder={preset.placeholder}
                 type="url"
               />
-            </div>
+            </li>
           );
         })}
-      </div>
+      </ul>
 
       <div className="flex justify-end pt-2">
-        <button onClick={save} className="btn-primary px-6 py-2.5 rounded-xl text-sm">Save links</button>
+        <button type="button" onClick={save} className="btn-primary px-6 py-2.5 rounded-xl text-sm">Save links</button>
       </div>
     </div>
   );
@@ -1296,21 +1399,24 @@ function ThemesTab({ config, saveConfig, showToast }) {
     <div className="space-y-5">
       <div className="card p-6">
         <h2 className="font-display text-xl mb-4" style={{ color: 'var(--primary)' }}>Theme Presets</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div role="radiogroup" aria-label="Choose a theme preset" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {Object.entries(THEMES).map(([key, t]) => (
-            <div
+            <button
+              type="button"
               key={key}
-              className={`theme-swatch ${theme.preset === key ? 'active' : ''}`}
+              role="radio"
+              aria-checked={theme.preset === key}
+              className={`theme-swatch text-left ${theme.preset === key ? 'active' : ''}`}
               style={{ background: t.bg, border: theme.preset === key ? `2px solid ${t.primary}` : `2px solid transparent` }}
               onClick={() => applyAndSave({ ...theme, preset: key })}
             >
-              <div className="flex gap-1 mb-2">
+              <div className="flex gap-1 mb-2" aria-hidden="true">
                 <div style={{ width: 14, height: 14, borderRadius: 4, background: t.primary }} />
                 <div style={{ width: 14, height: 14, borderRadius: 4, background: t.accent }} />
                 <div style={{ width: 14, height: 14, borderRadius: 4, background: t.surface }} />
               </div>
               <div className="text-xs font-medium" style={{ color: t.text }}>{t.name}</div>
-            </div>
+            </button>
           ))}
         </div>
       </div>
@@ -1324,11 +1430,14 @@ function ThemesTab({ config, saveConfig, showToast }) {
       <div className="card p-6 space-y-4">
         <h2 className="font-display text-xl" style={{ color: 'var(--primary)' }}>Background</h2>
         <div>
-          <label className="block text-xs uppercase tracking-wider opacity-60 mb-2">Effect</label>
-          <div className="flex gap-2 flex-wrap">
+          <div id="bg-effect-label" className="block text-xs uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>Effect</div>
+          <div role="radiogroup" aria-labelledby="bg-effect-label" className="flex gap-2 flex-wrap">
             {['aurora', 'particles', 'none'].map(eff => (
               <button
+                type="button"
                 key={eff}
+                role="radio"
+                aria-checked={theme.backgroundEffect === eff}
                 onClick={() => applyAndSave({ ...theme, backgroundEffect: eff })}
                 className={`px-4 py-2 rounded-lg text-sm ${theme.backgroundEffect === eff ? 'btn-primary' : 'btn-ghost'}`}
               >
@@ -1338,40 +1447,44 @@ function ThemesTab({ config, saveConfig, showToast }) {
           </div>
         </div>
         <div>
-          <label className="block text-xs uppercase tracking-wider opacity-60 mb-2">Background image</label>
+          <label htmlFor="bg-image-url" className="block text-xs uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>Background image URL</label>
           <div className="flex gap-2">
             <input
+              id="bg-image-url"
               className="input"
               value={theme.backgroundImage || ''}
               onChange={(e) => setTheme({ ...theme, backgroundImage: e.target.value })}
               placeholder="https://... or upload"
+              type="url"
             />
             <label className="btn-ghost px-4 rounded-xl text-sm cursor-pointer flex items-center gap-2 whitespace-nowrap">
-              <Icon name="upload" size={14} /> {uploading ? '...' : 'upload'}
-              <input type="file" accept="image/*" className="hidden" onChange={(e) => uploadBg(e.target.files?.[0])} />
+              <Icon name="upload" size={14} /> <span>{uploading ? 'uploading…' : 'upload'}</span>
+              <input type="file" accept="image/*" className="sr-only" aria-label="Upload background image" onChange={(e) => uploadBg(e.target.files?.[0])} />
             </label>
           </div>
         </div>
         <div>
-          <label className="block text-xs uppercase tracking-wider opacity-60 mb-2">
-            Overlay darkness <span className="opacity-80 ml-2 font-mono">{Math.round((theme.backgroundOverlay ?? 0.6) * 100)}%</span>
+          <label htmlFor="bg-overlay" className="block text-xs uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>
+            Overlay darkness <span className="ml-2 font-mono" style={{ color: 'var(--text-secondary)' }}>{Math.round((theme.backgroundOverlay ?? 0.6) * 100)}%</span>
           </label>
           <input
+            id="bg-overlay"
             type="range"
             min="0" max="1" step="0.05"
             value={theme.backgroundOverlay ?? 0.6}
             onChange={(e) => setTheme({ ...theme, backgroundOverlay: parseFloat(e.target.value) })}
             className="w-full"
             style={{ accentColor: 'var(--primary)' }}
+            aria-valuetext={`${Math.round((theme.backgroundOverlay ?? 0.6) * 100)} percent`}
           />
         </div>
         <div className="flex justify-end gap-2">
           {theme.backgroundImage && (
-            <button onClick={() => applyAndSave({ ...theme, backgroundImage: '' })} className="btn-ghost px-4 py-2 rounded-xl text-sm">
-              Remove
+            <button type="button" onClick={() => applyAndSave({ ...theme, backgroundImage: '' })} className="btn-ghost px-4 py-2 rounded-xl text-sm">
+              Remove image
             </button>
           )}
-          <button onClick={() => applyAndSave(theme)} className="btn-primary px-6 py-2 rounded-xl text-sm">Apply</button>
+          <button type="button" onClick={() => applyAndSave(theme)} className="btn-primary px-6 py-2 rounded-xl text-sm">Apply</button>
         </div>
       </div>
     </div>
@@ -1412,28 +1525,37 @@ function CustomThemeEditor({ theme, onApply, isActive }) {
         {isActive && <span className="text-xs px-2 py-1 rounded" style={{ background: 'var(--primary)', color: 'var(--bg)' }}>active</span>}
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-        {fields.map(f => (
-          <div key={f.key}>
-            <label className="block text-xs opacity-60 mb-1">{f.label}</label>
-            <div className="flex gap-2 items-center">
-              <input
-                type="color"
-                value={custom[f.key] || '#000000'}
-                onChange={(e) => setCustom({ ...custom, [f.key]: e.target.value })}
-                className="w-10 h-10 rounded cursor-pointer"
-                style={{ background: 'transparent', border: '1px solid var(--border)' }}
-              />
-              <input
-                className="input font-mono text-xs"
-                value={custom[f.key] || ''}
-                onChange={(e) => setCustom({ ...custom, [f.key]: e.target.value })}
-              />
+        {fields.map(f => {
+          const colorId = `custom-${f.key}-color`;
+          const hexId = `custom-${f.key}-hex`;
+          return (
+            <div key={f.key}>
+              <label htmlFor={colorId} className="block text-xs mb-1" style={{ color: 'var(--text-tertiary)' }}>{f.label}</label>
+              <div className="flex gap-2 items-center">
+                <input
+                  id={colorId}
+                  type="color"
+                  value={custom[f.key] || '#000000'}
+                  onChange={(e) => setCustom({ ...custom, [f.key]: e.target.value })}
+                  className="w-10 h-10 rounded cursor-pointer"
+                  style={{ background: 'transparent', border: '1px solid var(--border)' }}
+                  aria-label={`${f.label} color picker`}
+                />
+                <label htmlFor={hexId} className="sr-only">{f.label} hex code</label>
+                <input
+                  id={hexId}
+                  className="input font-mono text-xs"
+                  value={custom[f.key] || ''}
+                  onChange={(e) => setCustom({ ...custom, [f.key]: e.target.value })}
+                  placeholder="#000000"
+                />
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <div className="flex justify-end">
-        <button onClick={handleApply} className="btn-primary px-6 py-2 rounded-xl text-sm">
+        <button type="button" onClick={handleApply} className="btn-primary px-6 py-2 rounded-xl text-sm">
           Apply custom
         </button>
       </div>
@@ -1478,66 +1600,70 @@ function AudioTab({ config, saveConfig, showToast }) {
 
       <div className="space-y-4">
         <div>
-          <label className="block text-xs uppercase tracking-wider opacity-60 mb-2">Background music</label>
+          <label htmlFor="audio-bg-url" className="block text-xs uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>Background music URL</label>
           <div className="flex gap-2 mb-2">
             <input
+              id="audio-bg-url"
               className="input"
               value={audio.backgroundUrl || ''}
               onChange={(e) => setAudio({ ...audio, backgroundUrl: e.target.value })}
               placeholder="https://... .mp3"
+              type="url"
             />
             <label className="btn-ghost px-4 rounded-xl text-sm cursor-pointer flex items-center gap-2 whitespace-nowrap">
-              <Icon name="upload" size={14} /> {uploading === 'backgroundUrl' ? '...' : 'upload'}
-              <input type="file" accept="audio/*" className="hidden" onChange={(e) => uploadAudio(e.target.files?.[0], 'backgroundUrl')} />
+              <Icon name="upload" size={14} /> <span>{uploading === 'backgroundUrl' ? 'uploading…' : 'upload'}</span>
+              <input type="file" accept="audio/*" className="sr-only" aria-label="Upload background music file" onChange={(e) => uploadAudio(e.target.files?.[0], 'backgroundUrl')} />
             </label>
           </div>
           {audio.backgroundUrl && (
-            <audio ref={previewRef} src={audio.backgroundUrl} controls className="w-full" style={{ borderRadius: 8 }} />
+            <audio ref={previewRef} src={audio.backgroundUrl} controls className="w-full" style={{ borderRadius: 8 }} aria-label="Background music preview" />
           )}
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs uppercase tracking-wider opacity-60 mb-2">
-              Volume <span className="opacity-80 ml-2 font-mono">{Math.round((audio.volume ?? 0.4) * 100)}%</span>
+            <label htmlFor="audio-volume" className="block text-xs uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>
+              Volume <span className="ml-2 font-mono" style={{ color: 'var(--text-secondary)' }}>{Math.round((audio.volume ?? 0.4) * 100)}%</span>
             </label>
             <input
+              id="audio-volume"
               type="range" min="0" max="1" step="0.05"
               value={audio.volume ?? 0.4}
               onChange={(e) => setAudio({ ...audio, volume: parseFloat(e.target.value) })}
               className="w-full"
               style={{ accentColor: 'var(--primary)' }}
+              aria-valuetext={`${Math.round((audio.volume ?? 0.4) * 100)} percent`}
             />
           </div>
           <div className="space-y-2">
-            <label className="flex items-center gap-3 cursor-pointer">
+            <label className="flex items-center gap-3 cursor-pointer" style={{ minHeight: 24 }}>
               <input
                 type="checkbox"
                 checked={audio.autoplay !== false}
                 onChange={(e) => setAudio({ ...audio, autoplay: e.target.checked })}
-                style={{ accentColor: 'var(--primary)' }}
+                style={{ accentColor: 'var(--primary)', width: 18, height: 18 }}
               />
               <span className="text-sm">Autoplay after entry</span>
             </label>
-            <label className="flex items-center gap-3 cursor-pointer">
+            <label className="flex items-center gap-3 cursor-pointer" style={{ minHeight: 24 }}>
               <input
                 type="checkbox"
                 checked={audio.loop !== false}
                 onChange={(e) => setAudio({ ...audio, loop: e.target.checked })}
-                style={{ accentColor: 'var(--primary)' }}
+                style={{ accentColor: 'var(--primary)', width: 18, height: 18 }}
               />
               <span className="text-sm">Loop</span>
             </label>
           </div>
         </div>
 
-        <div className="text-xs opacity-50 pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
-          Note: browsers block autoplay until the user clicks once — the "click to enter" overlay handles that.
+        <div className="text-xs pt-2 border-t" style={{ borderColor: 'var(--border)', color: 'var(--text-tertiary)' }}>
+          Browsers block autoplay until the user clicks once — the "click to enter" overlay handles that.
         </div>
       </div>
 
       <div className="flex justify-end">
-        <button onClick={save} className="btn-primary px-6 py-2.5 rounded-xl text-sm">Save audio</button>
+        <button type="button" onClick={save} className="btn-primary px-6 py-2.5 rounded-xl text-sm">Save audio</button>
       </div>
     </div>
   );
@@ -1585,31 +1711,41 @@ function SettingsTab({ config, saveConfig, showToast }) {
       <div className="card p-6 space-y-4">
         <h2 className="font-display text-xl" style={{ color: 'var(--primary)' }}>Change secret code</h2>
         <form onSubmit={changePassword} className="space-y-3 max-w-md">
-          <input className="input" type="password" placeholder="Current code" value={current} onChange={e => setCurrent(e.target.value)} />
-          <input className="input" type="password" placeholder="New code" value={next} onChange={e => setNext(e.target.value)} />
-          <input className="input" type="password" placeholder="Confirm new code" value={confirmCode} onChange={e => setConfirmCode(e.target.value)} />
+          <div>
+            <label htmlFor="cur-code" className="block text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>Current code</label>
+            <input id="cur-code" className="input" type="password" autoComplete="current-password" value={current} onChange={e => setCurrent(e.target.value)} />
+          </div>
+          <div>
+            <label htmlFor="new-code" className="block text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>New code</label>
+            <input id="new-code" className="input" type="password" autoComplete="new-password" value={next} onChange={e => setNext(e.target.value)} />
+          </div>
+          <div>
+            <label htmlFor="conf-code" className="block text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>Confirm new code</label>
+            <input id="conf-code" className="input" type="password" autoComplete="new-password" value={confirmCode} onChange={e => setConfirmCode(e.target.value)} />
+          </div>
           <button type="submit" disabled={busy} className="btn-primary px-6 py-2.5 rounded-xl text-sm">
-            {busy ? 'updating...' : 'Update code'}
+            {busy ? 'updating…' : 'Update code'}
           </button>
         </form>
       </div>
 
       <div className="card p-6 space-y-3">
         <h2 className="font-display text-xl" style={{ color: 'var(--primary)' }}>Backup</h2>
-        <p className="text-sm opacity-60">Download a JSON file with all your settings.</p>
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Download a JSON file with all your settings.</p>
         <div>
-          <button onClick={exportData} className="btn-ghost px-5 py-2 rounded-xl text-sm flex items-center gap-2 inline-flex">
-            <Icon name="upload" size={14} className="rotate-180" /> Export JSON
+          <button type="button" onClick={exportData} className="btn-ghost px-5 py-2 rounded-xl text-sm items-center gap-2 inline-flex">
+            <Icon name="upload" size={14} className="rotate-180" /> <span>Export JSON</span>
           </button>
         </div>
       </div>
 
-      <div className="card p-6 space-y-3" style={{ borderColor: 'rgba(239, 71, 111, 0.3)' }}>
+      <div className="card p-6 space-y-3" style={{ borderColor: 'rgba(255, 107, 107, 0.3)' }}>
         <h2 className="font-display text-xl" style={{ color: 'var(--danger)' }}>Danger zone</h2>
-        <p className="text-sm opacity-60">Reset all settings to defaults.</p>
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Reset all settings to defaults.</p>
         <button
+          type="button"
           onClick={async () => {
-            if (!window.confirm('Reset everything to defaults?')) return;
+            if (!window.confirm('Reset everything to defaults? This cannot be undone.')) return;
             await saveConfig(DEFAULT_CONFIG);
             showToast('Reset complete');
           }}
