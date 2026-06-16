@@ -528,6 +528,38 @@ const DEFAULT_PASSWORD_HASH = '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error || new Error('FileReader failed'));
+    reader.readAsDataURL(file);
+  });
+}
+
+// Upload helper: try Firebase Storage first, fall back to embedded data URL.
+// Returns { url, isLocal, sizeMB }. isLocal=true means stored as base64 in config (no cross-device sync, size-limited).
+async function uploadFile(file, folder) {
+  if (!file) throw new Error('no file');
+  const sizeMB = file.size / (1024 * 1024);
+
+  try {
+    const path = `${folder}/${Date.now()}_${file.name.replace(/[^a-z0-9._-]/gi,'_')}`;
+    const snap = await storage.ref(path).put(file);
+    const url = await snap.ref.getDownloadURL();
+    return { url, isLocal: false, sizeMB };
+  } catch (err) {
+    console.warn('[gnmc] Firebase Storage upload failed, falling back to data URL', err);
+    // Hard limit on embed: ~700KB after base64 expansion stays under Firestore's 1MB doc limit
+    const MAX_EMBED_MB = 0.7;
+    if (sizeMB > MAX_EMBED_MB) {
+      throw new Error(`FILE_TOO_LARGE_LOCAL:${sizeMB.toFixed(2)}`);
+    }
+    const url = await fileToDataUrl(file);
+    return { url, isLocal: true, sizeMB };
+  }
+}
+
 // ============================================================================
 // ICONS (inline SVG)
 // ============================================================================
@@ -823,6 +855,9 @@ const TRANSLATIONS = {
     'settings.resetBtn': 'Reset to defaults',
     'settings.resetConfirm': 'Reset everything to defaults? This cannot be undone.',
     'settings.resetDone': 'Reset complete',
+    // upload
+    'upload.localOk': 'Saved locally (under 700KB)',
+    'upload.tooLarge': 'File too large — Firebase Storage not set up. Max 700KB for local save.',
     // lang toggle
     'lang.toggle': 'Switch to Arabic',
     'lang.short': 'AR'
@@ -919,6 +954,8 @@ const TRANSLATIONS = {
     'settings.resetBtn': 'إعادة الضبط',
     'settings.resetConfirm': 'تأكيد إعادة الضبط الكامل؟ لا يمكن التراجع.',
     'settings.resetDone': 'تمت إعادة الضبط',
+    'upload.localOk': 'تم الحفظ محلياً (أقل من ٧٠٠ كيلوبايت)',
+    'upload.tooLarge': 'الملف كبير — Firebase Storage غير مُفعّل. الحد للحفظ المحلي ٧٠٠ كيلوبايت.',
     'lang.toggle': 'التبديل إلى الإنجليزية',
     'lang.short': 'EN'
   }
@@ -1068,8 +1105,10 @@ function App() {
               auth:    { ...DEFAULT_CONFIG.auth,    ...(data.auth||{}) }
             });
           } else {
-            CONFIG_DOC.set(DEFAULT_CONFIG).catch(()=>{});
-            finish(DEFAULT_CONFIG);
+            // Firestore is empty. If localStorage has prior edits, push them up instead of wiping.
+            const seed = fallback === DEFAULT_CONFIG ? DEFAULT_CONFIG : fallback;
+            CONFIG_DOC.set(seed).catch(()=>{});
+            finish(seed);
           }
         },
         (err) => {
@@ -1387,11 +1426,6 @@ function PublicProfile({ config, onSecretTrigger }) {
         </div>
       </div>
 
-      {clickCount >= 5 && clickCount < 10 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 font-mono text-xs" style={{ color: 'var(--text-tertiary)' }} aria-live="polite">
-          {clickCount}/10
-        </div>
-      )}
     </main>
   );
 }
@@ -1577,14 +1611,18 @@ function ProfileTab({ config, saveConfig, showToast }) {
     if (!file) return;
     setUploading(true);
     try {
-      const path = `avatars/${Date.now()}_${file.name}`;
-      const snap = await storage.ref(path).put(file);
-      const url = await snap.ref.getDownloadURL();
-      setDraft(d => ({ ...d, avatar: url }));
-      showToast(t('profile.avatarSaved'));
+      const { url, isLocal } = await uploadFile(file, 'avatars');
+      const next = { ...draft, avatar: url };
+      setDraft(next);
+      await saveConfig({ profile: next });
+      showToast(isLocal ? t('upload.localOk') : t('profile.avatarSaved'));
     } catch (err) {
       console.error(err);
-      showToast(t('profile.uploadFailed'));
+      if (String(err.message || '').startsWith('FILE_TOO_LARGE_LOCAL')) {
+        showToast(t('upload.tooLarge'));
+      } else {
+        showToast(t('profile.uploadFailed'));
+      }
     }
     setUploading(false);
   };
@@ -1805,13 +1843,16 @@ function ThemesTab({ config, saveConfig, showToast }) {
     if (!file) return;
     setUploading(true);
     try {
-      const path = `backgrounds/${Date.now()}_${file.name}`;
-      const snap = await storage.ref(path).put(file);
-      const url = await snap.ref.getDownloadURL();
+      const { url, isLocal } = await uploadFile(file, 'backgrounds');
       await applyAndSave({ ...theme, backgroundImage: url });
+      if (isLocal) showToast(t('upload.localOk'));
     } catch (e) {
       console.error(e);
-      showToast(t('profile.uploadFailed'));
+      if (String(e.message || '').startsWith('FILE_TOO_LARGE_LOCAL')) {
+        showToast(t('upload.tooLarge'));
+      } else {
+        showToast(t('profile.uploadFailed'));
+      }
     }
     setUploading(false);
   };
@@ -2014,14 +2055,18 @@ function AudioTab({ config, saveConfig, showToast }) {
     if (!file) return;
     setUploading(key);
     try {
-      const path = `audio/${Date.now()}_${file.name}`;
-      const snap = await storage.ref(path).put(file);
-      const url = await snap.ref.getDownloadURL();
-      setAudio(a => ({ ...a, [key]: url }));
-      showToast(t('audio.uploaded'));
+      const { url, isLocal } = await uploadFile(file, 'audio');
+      const nextAudio = { ...audio, [key]: url };
+      setAudio(nextAudio);
+      await saveConfig({ audio: nextAudio });
+      showToast(isLocal ? t('upload.localOk') : t('audio.uploaded'));
     } catch (e) {
       console.error(e);
-      showToast(t('profile.uploadFailed'));
+      if (String(e.message || '').startsWith('FILE_TOO_LARGE_LOCAL')) {
+        showToast(t('upload.tooLarge'));
+      } else {
+        showToast(t('profile.uploadFailed'));
+      }
     }
     setUploading(null);
   };
