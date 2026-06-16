@@ -1,15 +1,18 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="ar" dir="rtl" style="color-scheme: dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#0a0a0f" />
-  <meta name="description" content="Personal bio • links • music" />
+  <meta name="description" content="Personal bio · links · music · gnmc" />
   <title>gnmc</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a0a0f'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='serif' font-size='18' fill='%23d4af37' font-weight='bold'%3Eg%3C/text%3E%3C/svg%3E" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Tajawal:wght@300;400;500;700;900&family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
   <script src="https://cdn.tailwindcss.com/3.4.16"></script>
@@ -46,6 +49,7 @@
 
   <style>
     :root {
+      color-scheme: dark;
       --bg: #0a0a0f;
       --surface: #14141f;
       --surface-2: #1c1c2b;
@@ -60,6 +64,9 @@
       --success: #34d399;
       --bg-image: none;
       --bg-overlay: 0.6;
+      --space-safe-top:    max(env(safe-area-inset-top), 16px);
+      --space-safe-bottom: max(env(safe-area-inset-bottom), 16px);
+      --space-safe-side:   max(env(safe-area-inset-left), env(safe-area-inset-right), 16px);
     }
 
     * { -webkit-tap-highlight-color: transparent; }
@@ -71,6 +78,19 @@
       overflow-x: hidden;
       min-height: 100vh;
       min-height: 100dvh;
+    }
+
+    html[dir="rtl"] body { font-family: 'Cairo', 'Outfit', system-ui, sans-serif; }
+
+    h1, h2, h3 { text-wrap: balance; letter-spacing: -0.01em; }
+    .tabular { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+    .safe-pad-x { padding-left: var(--space-safe-side); padding-right: var(--space-safe-side); }
+    .safe-pad-y { padding-top: var(--space-safe-top); padding-bottom: var(--space-safe-bottom); }
+
+    /* Touch optimization */
+    button, a, label, select, input[type="checkbox"], input[type="radio"], input[type="range"] {
+      touch-action: manipulation;
     }
 
     body {
@@ -167,11 +187,11 @@
       background: transparent;
       border: 1px solid var(--border);
       color: var(--text);
-      transition: all 150ms cubic-bezier(0.4,0,0.2,1);
+      transition: background-color 150ms cubic-bezier(0.4,0,0.2,1), border-color 150ms, color 150ms, transform 150ms;
     }
     .btn-ghost:hover { border-color: var(--primary); background: var(--primary-soft); }
 
-    .btn-danger { background: var(--danger); color: white; transition: all 150ms; }
+    .btn-danger { background: var(--danger); color: white; transition: opacity 150ms, transform 150ms; }
     .btn-danger:hover { opacity: 0.9; transform: translateY(-1px); }
 
     /* Card */
@@ -252,12 +272,14 @@
       position: fixed; inset: 0;
       background: rgba(0,0,0,0.75);
       backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       z-index: 100;
       animation: fadeIn 200ms ease;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 16px;
+      overscroll-behavior: contain;
     }
     .modal-content {
       animation: modalIn 280ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -279,10 +301,11 @@
       border-radius: 10px;
       font-size: 14px;
       font-weight: 500;
-      transition: all 150ms;
+      transition: background-color 150ms, color 150ms;
       cursor: pointer;
       color: var(--text-secondary);
       white-space: nowrap;
+      min-height: 40px;
     }
     .tab:hover { color: var(--text); background: var(--surface-2); }
     .tab.active { background: var(--primary); color: #0a0a0f; }
@@ -316,9 +339,11 @@
       border: 2px solid transparent;
       border-radius: 14px;
       padding: 12px;
-      transition: all 150ms;
+      transition: transform 150ms, border-color 150ms, box-shadow 150ms;
       position: relative;
       overflow: hidden;
+      width: 100%;
+      text-align: start;
     }
     .theme-swatch.active {
       border-color: var(--primary);
@@ -414,10 +439,52 @@
       white-space: nowrap;
       border: 0;
     }
+
+    /* Skip link respects safe area */
+    .skip-link:focus {
+      left: calc(env(safe-area-inset-left) + 8px);
+      top: calc(env(safe-area-inset-top) + 8px);
+    }
+
+    /* RTL refinements */
+    [dir="rtl"] .skip-link { left: auto; right: -9999px; }
+    [dir="rtl"] .skip-link:focus { right: calc(env(safe-area-inset-right) + 8px); left: auto; }
+
+    /* Responsive — small phones */
+    @media (max-width: 380px) {
+      .avatar-ring { width: 112px !important; height: 112px !important; }
+      .font-display { letter-spacing: 0; }
+      .tab { padding: 8px 12px; font-size: 13px; }
+    }
+
+    /* Large displays */
+    @media (min-width: 1024px) {
+      .link-card { padding: 18px 22px; }
+    }
+
+    /* Landscape phones — reduce vertical padding */
+    @media (orientation: landscape) and (max-height: 600px) {
+      main { padding-top: 24px !important; padding-bottom: 24px !important; }
+      .avatar-ring { width: 96px !important; height: 96px !important; }
+    }
+
+    /* No-hover devices: simplify hover states */
+    @media (hover: none) {
+      .btn-ghost:hover, .btn-primary:hover, .link-card:hover, .theme-swatch:hover {
+        transform: none;
+      }
+    }
+
+    /* Hide native scrollbars on horizontal tab strip (cleaner look) */
+    [role="tablist"]::-webkit-scrollbar { display: none; }
+    [role="tablist"] { scrollbar-width: none; }
+
+    /* Make background video sit behind everything */
+    video.fixed { z-index: 0 !important; }
   </style>
 </head>
 <body>
-  <a href="#main" class="skip-link">Skip to main content</a>
+  <a href="#main" class="skip-link">تخطّى إلى المحتوى</a>
   <div id="root">
     <div role="status" aria-live="polite" aria-label="Loading" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;font-family:'Cinzel',serif;color:#d4af37;">
       <div class="spinner"></div>
@@ -514,14 +581,14 @@ const SOCIAL_PRESETS = [
   { id: 'instagram', label: 'Instagram', icon: 'instagram', placeholder: 'https://instagram.com/username' },
   { id: 'twitter',   label: 'X',         icon: 'twitter',   placeholder: 'https://x.com/username' },
   { id: 'youtube',   label: 'YouTube',   icon: 'youtube',   placeholder: 'https://youtube.com/@channel' },
-  { id: 'discord',   label: 'Discord',   icon: 'discord',   placeholder: 'https://discord.gg/...' },
+  { id: 'discord',   label: 'Discord',   icon: 'discord',   placeholder: 'https://discord.gg/…' },
   { id: 'twitch',    label: 'Twitch',    icon: 'twitch',    placeholder: 'https://twitch.tv/username' },
-  { id: 'spotify',   label: 'Spotify',   icon: 'spotify',   placeholder: 'https://open.spotify.com/...' },
+  { id: 'spotify',   label: 'Spotify',   icon: 'spotify',   placeholder: 'https://open.spotify.com/…' },
   { id: 'github',    label: 'GitHub',    icon: 'github',    placeholder: 'https://github.com/username' },
   { id: 'telegram',  label: 'Telegram',  icon: 'telegram',  placeholder: 'https://t.me/username' },
-  { id: 'whatsapp',  label: 'WhatsApp',  icon: 'whatsapp',  placeholder: 'https://wa.me/...' },
+  { id: 'whatsapp',  label: 'WhatsApp',  icon: 'whatsapp',  placeholder: 'https://wa.me/…' },
   { id: 'email',     label: 'Email',     icon: 'email',     placeholder: 'mailto:you@example.com' },
-  { id: 'link',      label: 'Custom',    icon: 'link',      placeholder: 'https://...' },
+  { id: 'link',      label: 'Custom',    icon: 'link',      placeholder: 'https://…' },
 ];
 
 // ============================================================================
@@ -626,10 +693,287 @@ function applyTheme(themeObj) {
   r.style.setProperty('--primary-soft', themeObj.primarySoft);
 }
 
+const isVideoUrl = (url) => !!url && /\.(mp4|webm|mov|m4v|ogv)(\?|$)/i.test(url);
+
 function applyBackground(bgImage, overlay) {
   const r = document.documentElement;
-  r.style.setProperty('--bg-image', bgImage ? `url("${bgImage}")` : 'none');
+  const isVid = isVideoUrl(bgImage);
+  r.style.setProperty('--bg-image', (bgImage && !isVid) ? `url("${bgImage}")` : 'none');
   r.style.setProperty('--bg-overlay', overlay != null ? overlay : 0.6);
+}
+
+function BackgroundVideo({ url }) {
+  if (!isVideoUrl(url)) return null;
+  return (
+    <video
+      key={url}
+      src={url}
+      autoPlay muted loop playsInline
+      aria-hidden="true"
+      className="fixed inset-0"
+      style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', zIndex: 0 }}
+    />
+  );
+}
+
+// ============================================================================
+// I18N — Arabic + English
+// ============================================================================
+const TRANSLATIONS = {
+  en: {
+    // common
+    save: 'Save', cancel: 'Cancel', delete: 'Delete', apply: 'Apply',
+    upload: 'Upload', uploading: 'Uploading…', remove: 'Remove',
+    add: 'Add', loading: 'Loading', active: 'Active', saved: 'Saved',
+    // entry
+    'entry.hint': 'Click anywhere',
+    'entry.cta': 'Enter',
+    'entry.skip': 'Skip to main content',
+    // public
+    'public.noLinks': 'No links yet',
+    'public.opensInNew': 'opens in new tab',
+    'public.avatarLabel': 'avatar — tap multiple times for admin access',
+    'public.musicMute': 'Mute music',
+    'public.musicUnmute': 'Unmute music',
+    // modal
+    'modal.title': 'Secret',
+    'modal.desc': 'Enter the secret code',
+    'modal.wrong': 'Wrong code, try again',
+    'modal.checking': 'Checking…',
+    'modal.enter': 'Enter',
+    // dashboard
+    'dash.label': 'Dashboard',
+    'dash.title': 'Control Panel',
+    'dash.view': 'View',
+    'dash.logout': 'Logout',
+    // tabs
+    'tab.profile': 'Profile',
+    'tab.links': 'Links',
+    'tab.themes': 'Themes',
+    'tab.audio': 'Audio',
+    'tab.settings': 'Settings',
+    // profile tab
+    'profile.heading': 'Profile',
+    'profile.name': 'Name',
+    'profile.namePh': 'Your display name',
+    'profile.title': 'Title / Tagline',
+    'profile.titlePh': 'Short tagline',
+    'profile.bio': 'Bio',
+    'profile.bioPh': 'A few words about you',
+    'profile.avatarUrl': 'Avatar URL (alternative)',
+    'profile.uploadAvatar': 'Upload avatar',
+    'profile.saveBtn': 'Save changes',
+    'profile.saved': 'Profile saved',
+    'profile.avatarSaved': 'Avatar uploaded',
+    'profile.uploadFailed': 'Upload failed',
+    // links tab
+    'links.heading': 'Social Links',
+    'links.add': 'Add link',
+    'links.empty': 'No links yet — click "Add link" to create one',
+    'links.platform': 'Platform',
+    'links.label': 'Link label',
+    'links.url': 'URL',
+    'links.moveUp': 'Move up',
+    'links.moveDown': 'Move down',
+    'links.deleteLink': 'Delete link',
+    'links.saveBtn': 'Save links',
+    'links.saved': 'Links saved',
+    // themes tab
+    'themes.presets': 'Theme Presets',
+    'themes.chooseAria': 'Choose a theme preset',
+    'themes.custom': 'Custom Theme',
+    'themes.applyCustom': 'Apply custom',
+    'themes.bg': 'Background',
+    'themes.effect': 'Effect',
+    'themes.bgImage': 'Background image URL',
+    'themes.overlay': 'Overlay darkness',
+    'themes.removeImage': 'Remove image',
+    'themes.applied': 'Theme applied',
+    'themes.fieldBg': 'Background', 'themes.fieldSurface': 'Surface',
+    'themes.fieldSurface2': 'Surface 2', 'themes.fieldPrimary': 'Primary',
+    'themes.fieldAccent': 'Accent', 'themes.fieldText': 'Text',
+    'themes.fieldTextSecondary': 'Text Secondary',
+    // audio tab
+    'audio.heading': 'Audio',
+    'audio.bgUrl': 'Background music URL',
+    'audio.volume': 'Volume',
+    'audio.autoplay': 'Autoplay after entry',
+    'audio.loop': 'Loop',
+    'audio.note': 'Browsers block autoplay until the user clicks once — the "click to enter" overlay handles that.',
+    'audio.saveBtn': 'Save audio',
+    'audio.saved': 'Audio settings saved',
+    'audio.uploaded': 'Audio uploaded',
+    'audio.preview': 'Background music preview',
+    // settings tab
+    'settings.changeCode': 'Change secret code',
+    'settings.currentCode': 'Current code',
+    'settings.newCode': 'New code',
+    'settings.confirmCode': 'Confirm new code',
+    'settings.updateBtn': 'Update code',
+    'settings.updating': 'Updating…',
+    'settings.codeShort': 'Code too short (min 3 chars)',
+    'settings.codeMismatch': 'Codes do not match',
+    'settings.wrongCurrent': 'Current code is wrong',
+    'settings.codeChanged': 'Code changed',
+    'settings.backup': 'Backup',
+    'settings.backupDesc': 'Download a JSON file with all your settings.',
+    'settings.exportBtn': 'Export JSON',
+    'settings.danger': 'Danger zone',
+    'settings.dangerDesc': 'Reset all settings to defaults.',
+    'settings.resetBtn': 'Reset to defaults',
+    'settings.resetConfirm': 'Reset everything to defaults? This cannot be undone.',
+    'settings.resetDone': 'Reset complete',
+    // lang toggle
+    'lang.toggle': 'Switch to Arabic',
+    'lang.short': 'AR'
+  },
+  ar: {
+    save: 'حفظ', cancel: 'إلغاء', delete: 'حذف', apply: 'تطبيق',
+    upload: 'رفع', uploading: 'جاري الرفع…', remove: 'إزالة',
+    add: 'إضافة', loading: 'جاري التحميل', active: 'مفعّل', saved: 'تم الحفظ',
+    'entry.hint': 'اضغط في أي مكان',
+    'entry.cta': 'ادخل',
+    'entry.skip': 'تخطّى إلى المحتوى',
+    'public.noLinks': 'لا روابط بعد',
+    'public.opensInNew': 'يفتح في تبويب جديد',
+    'public.avatarLabel': 'الصورة الشخصية — اضغط عدة مرات للوصول إلى الإدارة',
+    'public.musicMute': 'كتم الصوت',
+    'public.musicUnmute': 'تشغيل الصوت',
+    'modal.title': 'سرّي',
+    'modal.desc': 'أدخل الرمز السري',
+    'modal.wrong': 'رمز خاطئ، حاول مرة أخرى',
+    'modal.checking': 'جاري التحقق…',
+    'modal.enter': 'دخول',
+    'dash.label': 'لوحة التحكم',
+    'dash.title': 'لوحة الإدارة',
+    'dash.view': 'عرض',
+    'dash.logout': 'خروج',
+    'tab.profile': 'الملف',
+    'tab.links': 'الروابط',
+    'tab.themes': 'الثيمات',
+    'tab.audio': 'الصوت',
+    'tab.settings': 'الإعدادات',
+    'profile.heading': 'الملف الشخصي',
+    'profile.name': 'الاسم',
+    'profile.namePh': 'اسم العرض',
+    'profile.title': 'العنوان / الشعار',
+    'profile.titlePh': 'شعار قصير',
+    'profile.bio': 'النبذة',
+    'profile.bioPh': 'كلمات عنك',
+    'profile.avatarUrl': 'رابط الصورة (بديل)',
+    'profile.uploadAvatar': 'رفع صورة',
+    'profile.saveBtn': 'حفظ التغييرات',
+    'profile.saved': 'تم حفظ الملف',
+    'profile.avatarSaved': 'تم رفع الصورة',
+    'profile.uploadFailed': 'فشل الرفع',
+    'links.heading': 'الروابط الاجتماعية',
+    'links.add': 'إضافة رابط',
+    'links.empty': 'لا روابط بعد — اضغط "إضافة رابط"',
+    'links.platform': 'المنصة',
+    'links.label': 'اسم الرابط',
+    'links.url': 'الرابط',
+    'links.moveUp': 'تحريك للأعلى',
+    'links.moveDown': 'تحريك للأسفل',
+    'links.deleteLink': 'حذف الرابط',
+    'links.saveBtn': 'حفظ الروابط',
+    'links.saved': 'تم حفظ الروابط',
+    'themes.presets': 'ثيمات جاهزة',
+    'themes.chooseAria': 'اختر ثيماً جاهزاً',
+    'themes.custom': 'ثيم مخصص',
+    'themes.applyCustom': 'تطبيق المخصص',
+    'themes.bg': 'الخلفية',
+    'themes.effect': 'التأثير',
+    'themes.bgImage': 'رابط صورة الخلفية',
+    'themes.overlay': 'شدة الإظلام',
+    'themes.removeImage': 'إزالة الصورة',
+    'themes.applied': 'تم تطبيق الثيم',
+    'themes.fieldBg': 'الخلفية', 'themes.fieldSurface': 'السطح',
+    'themes.fieldSurface2': 'السطح ٢', 'themes.fieldPrimary': 'اللون الأساسي',
+    'themes.fieldAccent': 'لون التمييز', 'themes.fieldText': 'النص',
+    'themes.fieldTextSecondary': 'النص الثانوي',
+    'audio.heading': 'الصوت',
+    'audio.bgUrl': 'رابط الموسيقى الخلفية',
+    'audio.volume': 'مستوى الصوت',
+    'audio.autoplay': 'تشغيل تلقائي بعد الدخول',
+    'audio.loop': 'تكرار',
+    'audio.note': 'المتصفحات تمنع التشغيل التلقائي حتى يضغط المستخدم مرة — شاشة "اضغط للدخول" تتكفّل بذلك.',
+    'audio.saveBtn': 'حفظ الصوت',
+    'audio.saved': 'تم حفظ إعدادات الصوت',
+    'audio.uploaded': 'تم رفع الصوت',
+    'audio.preview': 'معاينة الموسيقى',
+    'settings.changeCode': 'تغيير الرمز السري',
+    'settings.currentCode': 'الرمز الحالي',
+    'settings.newCode': 'الرمز الجديد',
+    'settings.confirmCode': 'تأكيد الرمز الجديد',
+    'settings.updateBtn': 'تحديث الرمز',
+    'settings.updating': 'جاري التحديث…',
+    'settings.codeShort': 'الرمز قصير (3 خانات على الأقل)',
+    'settings.codeMismatch': 'الرموز غير متطابقة',
+    'settings.wrongCurrent': 'الرمز الحالي غير صحيح',
+    'settings.codeChanged': 'تم تغيير الرمز',
+    'settings.backup': 'نسخة احتياطية',
+    'settings.backupDesc': 'حمّل ملف JSON يحتوي كل إعداداتك.',
+    'settings.exportBtn': 'تصدير JSON',
+    'settings.danger': 'منطقة خطرة',
+    'settings.dangerDesc': 'إعادة كل الإعدادات للوضع الافتراضي.',
+    'settings.resetBtn': 'إعادة الضبط',
+    'settings.resetConfirm': 'تأكيد إعادة الضبط الكامل؟ لا يمكن التراجع.',
+    'settings.resetDone': 'تمت إعادة الضبط',
+    'lang.toggle': 'التبديل إلى الإنجليزية',
+    'lang.short': 'EN'
+  }
+};
+
+const LangContext = React.createContext({ lang: 'en', setLang: () => {}, t: (k) => k });
+const useLang = () => React.useContext(LangContext);
+
+function LangProvider({ children }) {
+  const [lang, setLangState] = useState(() => {
+    try {
+      const stored = localStorage.getItem('gnmc_lang');
+      if (stored === 'ar' || stored === 'en') return stored;
+    } catch (_) {}
+    return 'ar'; // default to Arabic — client base
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem('gnmc_lang', lang); } catch (_) {}
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  }, [lang]);
+
+  const setLang = useCallback((l) => setLangState(l), []);
+  const t = useCallback((k) => (TRANSLATIONS[lang] && TRANSLATIONS[lang][k]) || TRANSLATIONS.en[k] || k, [lang]);
+
+  return (
+    <LangContext.Provider value={{ lang, setLang, t }}>
+      {children}
+    </LangContext.Provider>
+  );
+}
+
+function LangToggle({ className = '' }) {
+  const { lang, setLang, t } = useLang();
+  return (
+    <button
+      type="button"
+      onClick={() => setLang(lang === 'en' ? 'ar' : 'en')}
+      className={`fixed z-50 px-3 py-1.5 rounded-full text-xs font-mono tracking-wider ${className}`}
+      style={{
+        top: 'max(env(safe-area-inset-top), 16px)',
+        insetInlineEnd: 'max(env(safe-area-inset-right), 16px)',
+        background: 'rgba(0,0,0,0.45)',
+        color: 'var(--text)',
+        border: '1px solid var(--border)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        letterSpacing: '0.15em'
+      }}
+      aria-label={t('lang.toggle')}
+    >
+      {t('lang.short')}
+    </button>
+  );
 }
 
 // ============================================================================
@@ -638,8 +982,8 @@ function applyBackground(bgImage, overlay) {
 const DEFAULT_CONFIG = {
   profile: {
     name: 'gnmc',
-    title: 'click my avatar 10 times',
-    bio: 'welcome to my world',
+    title: '',
+    bio: '',
     avatar: ''
   },
   links: [
@@ -669,6 +1013,7 @@ const DEFAULT_CONFIG = {
 // MAIN APP
 // ============================================================================
 function App() {
+  const { t } = useLang();
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -781,17 +1126,20 @@ function App() {
 
   if (loading) {
     return (
-      <div role="status" aria-live="polite" aria-label="Loading site" className="fixed inset-0 flex items-center justify-center flex-col gap-4">
+      <div role="status" aria-live="polite" aria-label={t('loading')} className="fixed inset-0 flex items-center justify-center flex-col gap-4">
         <div className="spinner" aria-hidden="true"></div>
-        <div className="font-display text-xs tracking-[0.4em] uppercase" style={{ color: 'var(--text-secondary)' }}>loading</div>
+        <div className="font-display text-xs tracking-[0.4em] uppercase" style={{ color: 'var(--text-secondary)' }}>{t('loading')}</div>
       </div>
     );
   }
 
   return (
     <>
+      <BackgroundVideo url={config.theme.backgroundImage} />
       <BackgroundLayer effect={config.theme.backgroundEffect} />
       <div className="grain"></div>
+
+      <LangToggle />
 
       <div className="relative z-10">
         {!hasEntered ? (
@@ -881,6 +1229,7 @@ function BackgroundAudio({ src, volume, loop }) {
 // ENTRY OVERLAY (click to enter — solves autoplay restriction)
 // ============================================================================
 function EntryOverlay({ config, onEnter }) {
+  const { t } = useLang();
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEnter(); } };
     document.addEventListener('keydown', onKey);
@@ -893,14 +1242,14 @@ function EntryOverlay({ config, onEnter }) {
       className="fixed inset-0 flex items-center justify-center fade-in"
       style={{ zIndex: 40, background: 'transparent', border: 'none', cursor: 'pointer', width: '100vw', height: '100dvh' }}
       onClick={onEnter}
-      aria-label={`Enter ${config.profile.name}'s profile`}
+      aria-label={t('entry.cta') + ' — ' + config.profile.name}
     >
       <div className="text-center">
         <div className="font-display text-[10px] sm:text-xs tracking-[0.6em] uppercase mb-6" style={{ color: 'var(--text-tertiary)' }}>
-          click anywhere
+          {t('entry.hint')}
         </div>
         <div className="font-display text-3xl sm:text-5xl" style={{ color: 'var(--primary)' }}>
-          enter
+          {t('entry.cta')}
         </div>
         <div className="mt-8 text-xs font-mono" style={{ color: 'var(--text-tertiary)' }}>
           {config.profile.name}
@@ -914,6 +1263,7 @@ function EntryOverlay({ config, onEnter }) {
 // PUBLIC PROFILE
 // ============================================================================
 function PublicProfile({ config, onSecretTrigger }) {
+  const { t } = useLang();
   const [clickCount, setClickCount] = useState(0);
   const clickTimer = useRef(null);
   const [musicPlaying, setMusicPlaying] = useState(true);
@@ -938,7 +1288,7 @@ function PublicProfile({ config, onSecretTrigger }) {
   const validLinks = (config.links || []).filter(l => l.url && l.url.trim());
 
   return (
-    <main id="main" className="min-h-[100dvh] flex flex-col items-center px-4 py-12 sm:py-16">
+    <main id="main" className="min-h-[100dvh] flex flex-col items-center px-4 py-12 sm:py-16 safe-pad-x">
       <div className="w-full max-w-md fade-up">
         {/* Avatar */}
         <div className="flex justify-center mb-6">
@@ -947,13 +1297,15 @@ function PublicProfile({ config, onSecretTrigger }) {
             className="avatar-ring"
             style={{ width: '140px', height: '140px', border: 'none', cursor: 'pointer', padding: '4px' }}
             onClick={handleAvatarClick}
-            aria-label={`${config.profile.name} avatar — tap multiple times for admin access`}
+            aria-label={`${config.profile.name} — ${t('public.avatarLabel')}`}
           >
             <div className="avatar-inner w-full h-full">
               <img
                 src={avatarSrc}
                 alt=""
                 aria-hidden="true"
+                width="140"
+                height="140"
                 className="avatar-img"
                 draggable={false}
               />
@@ -985,11 +1337,11 @@ function PublicProfile({ config, onSecretTrigger }) {
         )}
 
         {/* Links */}
-        <nav aria-label={`${config.profile.name} social links`}>
+        <nav aria-label={`${config.profile.name} — ${t('links.heading')}`}>
           <ul className="space-y-3 list-none p-0 m-0">
             {validLinks.length === 0 && (
               <li className="text-center text-sm py-8" style={{ color: 'var(--text-tertiary)' }}>
-                no links yet
+                {t('public.noLinks')}
               </li>
             )}
             {validLinks.map((link, i) => {
@@ -1009,16 +1361,16 @@ function PublicProfile({ config, onSecretTrigger }) {
                       minHeight: 56,
                       color: 'var(--text)'
                     }}
-                    aria-label={`${linkLabel} (opens in new tab)`}
+                    aria-label={`${linkLabel} (${t('public.opensInNew')})`}
                   >
                     <span className="flex-shrink-0" style={{ color: 'var(--primary)' }} aria-hidden="true">
                       <Icon name={preset.icon} size={22} />
                     </span>
-                    <span className="flex-1 font-medium text-sm">
+                    <span className="flex-1 min-w-0 truncate font-medium text-sm">
                       {linkLabel}
                     </span>
                     <span aria-hidden="true" style={{ color: 'var(--text-tertiary)' }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/></svg>
+                      <svg width="16" height="16" viewBox="0 0 24 24" style={{ transform: document.documentElement.dir === 'rtl' ? 'scaleX(-1)' : undefined }}><path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/></svg>
                     </span>
                   </a>
                 </li>
@@ -1048,6 +1400,7 @@ function PublicProfile({ config, onSecretTrigger }) {
 // SECRET CODE MODAL
 // ============================================================================
 function CodeModal({ onClose, onSubmit }) {
+  const { t } = useLang();
   const [code, setCode] = useState('');
   const [error, setError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -1095,20 +1448,22 @@ function CodeModal({ onClose, onSubmit }) {
 
         <div className="flex items-center gap-3 mb-2">
           <div style={{ color: 'var(--primary)' }}><Icon name="lock" size={22} /></div>
-          <h2 id="code-modal-title" className="font-display text-lg" style={{ color: 'var(--text)' }}>secret</h2>
+          <h2 id="code-modal-title" className="font-display text-lg" style={{ color: 'var(--text)' }}>{t('modal.title')}</h2>
         </div>
         <p id="code-modal-desc" className="text-xs mb-5" style={{ color: 'var(--text-secondary)' }}>
-          enter the secret code
+          {t('modal.desc')}
         </p>
 
         <form onSubmit={handleSubmit}>
-          <label htmlFor="secret-code-input" className="sr-only">Secret code</label>
+          <label htmlFor="secret-code-input" className="sr-only">{t('modal.title')}</label>
           <input
             id="secret-code-input"
             ref={inputRef}
             type="password"
             inputMode="numeric"
             autoComplete="off"
+            spellCheck={false}
+            name="secret-code"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="••••"
@@ -1119,15 +1474,15 @@ function CodeModal({ onClose, onSubmit }) {
           />
           {error && (
             <p id="secret-error" role="alert" className="text-xs mt-2 text-center" style={{ color: 'var(--danger)' }}>
-              Wrong code, try again
+              {t('modal.wrong')}
             </p>
           )}
           <div className="flex gap-2 mt-5">
             <button type="button" onClick={onClose} className="btn-ghost flex-1 py-3 rounded-xl text-sm font-medium">
-              cancel
+              {t('cancel')}
             </button>
             <button type="submit" disabled={submitting} className="btn-primary flex-1 py-3 rounded-xl text-sm">
-              {submitting ? 'checking…' : 'enter'}
+              {submitting ? t('modal.checking') : t('modal.enter')}
             </button>
           </div>
         </form>
@@ -1140,53 +1495,54 @@ function CodeModal({ onClose, onSubmit }) {
 // DASHBOARD
 // ============================================================================
 const TABS = [
-  { id: 'profile', label: 'Profile', icon: 'user' },
-  { id: 'links',   label: 'Links',   icon: 'link' },
-  { id: 'themes',  label: 'Themes',  icon: 'palette' },
-  { id: 'audio',   label: 'Audio',   icon: 'music' },
-  { id: 'settings',label: 'Settings',icon: 'settings' }
+  { id: 'profile', tkey: 'tab.profile', icon: 'user' },
+  { id: 'links',   tkey: 'tab.links',   icon: 'link' },
+  { id: 'themes',  tkey: 'tab.themes',  icon: 'palette' },
+  { id: 'audio',   tkey: 'tab.audio',   icon: 'music' },
+  { id: 'settings',tkey: 'tab.settings',icon: 'settings' }
 ];
 
 function Dashboard({ config, saveConfig, showToast, onExit }) {
+  const { t } = useLang();
   const [tab, setTab] = useState('profile');
 
   return (
-    <main id="main" className="min-h-[100dvh] py-6 sm:py-10 px-4 sm:px-6">
+    <main id="main" className="min-h-[100dvh] py-6 sm:py-10 px-4 sm:px-6 safe-pad-x">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8 fade-up">
-          <div>
-            <div className="font-mono text-[10px] tracking-[0.4em] uppercase mb-1" style={{ color: 'var(--text-tertiary)' }}>dashboard</div>
+        <div className="flex items-center justify-between mb-8 fade-up gap-3">
+          <div className="min-w-0">
+            <div className="font-mono text-[10px] tracking-[0.4em] uppercase mb-1" style={{ color: 'var(--text-tertiary)' }}>{t('dash.label')}</div>
             <h1 className="font-display text-2xl sm:text-3xl" style={{ color: 'var(--primary)' }}>
-              control panel
+              {t('dash.title')}
             </h1>
           </div>
-          <div className="flex gap-2">
-            <button type="button" onClick={onExit} className="btn-ghost px-4 py-2 rounded-xl text-sm flex items-center gap-2" aria-label="View public profile">
-              <Icon name="eye" size={16} /> <span className="hidden sm:inline">view</span>
+          <div className="flex gap-2 flex-shrink-0">
+            <button type="button" onClick={onExit} className="btn-ghost px-3 sm:px-4 py-2 rounded-xl text-sm flex items-center gap-2" aria-label={t('dash.view')}>
+              <Icon name="eye" size={16} /> <span className="hidden sm:inline">{t('dash.view')}</span>
             </button>
-            <button type="button" onClick={() => { onExit(); window.location.reload(); }} className="btn-ghost px-4 py-2 rounded-xl text-sm flex items-center gap-2" aria-label="Log out of dashboard">
-              <Icon name="logout" size={16} /> <span className="hidden sm:inline">logout</span>
+            <button type="button" onClick={() => { onExit(); window.location.reload(); }} className="btn-ghost px-3 sm:px-4 py-2 rounded-xl text-sm flex items-center gap-2" aria-label={t('dash.logout')}>
+              <Icon name="logout" size={16} /> <span className="hidden sm:inline">{t('dash.logout')}</span>
             </button>
           </div>
         </div>
 
         {/* Tabs */}
-        <div role="tablist" aria-label="Dashboard sections" className="flex gap-1 mb-6 overflow-x-auto pb-2 fade-up" style={{ animationDelay: '60ms' }}>
-          {TABS.map(t => (
+        <div role="tablist" aria-label={t('dash.title')} className="flex gap-1 mb-6 overflow-x-auto pb-2 fade-up" style={{ animationDelay: '60ms' }}>
+          {TABS.map(tab2 => (
             <button
-              key={t.id}
+              key={tab2.id}
               type="button"
               role="tab"
-              id={`tab-${t.id}`}
-              aria-selected={tab === t.id}
-              aria-controls={`panel-${t.id}`}
-              tabIndex={tab === t.id ? 0 : -1}
-              className={`tab flex items-center gap-2 ${tab === t.id ? 'active' : ''}`}
-              onClick={() => setTab(t.id)}
+              id={`tab-${tab2.id}`}
+              aria-selected={tab === tab2.id}
+              aria-controls={`panel-${tab2.id}`}
+              tabIndex={tab === tab2.id ? 0 : -1}
+              className={`tab flex items-center gap-2 ${tab === tab2.id ? 'active' : ''}`}
+              onClick={() => setTab(tab2.id)}
             >
-              <Icon name={t.icon} size={16} />
-              <span>{t.label}</span>
+              <Icon name={tab2.icon} size={16} />
+              <span>{t(tab2.tkey)}</span>
             </button>
           ))}
         </div>
@@ -1208,12 +1564,13 @@ function Dashboard({ config, saveConfig, showToast, onExit }) {
 // PROFILE TAB
 // ----------------------------------------------------------------------------
 function ProfileTab({ config, saveConfig, showToast }) {
+  const { t } = useLang();
   const [draft, setDraft] = useState(config.profile);
   const [uploading, setUploading] = useState(false);
 
   const handleSave = async () => {
     await saveConfig({ profile: draft });
-    showToast('Profile saved');
+    showToast(t('profile.saved'));
   };
 
   const handleUpload = async (file) => {
@@ -1224,17 +1581,17 @@ function ProfileTab({ config, saveConfig, showToast }) {
       const snap = await storage.ref(path).put(file);
       const url = await snap.ref.getDownloadURL();
       setDraft(d => ({ ...d, avatar: url }));
-      showToast('Avatar uploaded');
+      showToast(t('profile.avatarSaved'));
     } catch (err) {
       console.error(err);
-      showToast('Upload failed');
+      showToast(t('profile.uploadFailed'));
     }
     setUploading(false);
   };
 
   return (
     <div className="card p-6 space-y-5">
-      <h2 className="font-display text-xl mb-2" style={{ color: 'var(--primary)' }}>Profile</h2>
+      <h2 className="font-display text-xl mb-2" style={{ color: 'var(--primary)' }}>{t('profile.heading')}</h2>
 
       <div className="grid sm:grid-cols-[180px,1fr] gap-6">
         <div className="flex flex-col items-center gap-3">
@@ -1242,17 +1599,19 @@ function ProfileTab({ config, saveConfig, showToast }) {
             <img
               src={draft.avatar || `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' fill='%23222'/><text x='100' y='130' text-anchor='middle' font-family='Cinzel' font-size='90' fill='%23d4af37' font-weight='700'>${(draft.name?.[0]||'g').toUpperCase()}</text></svg>`)}`}
               alt=""
+              width="128"
+              height="128"
               className="w-full h-full object-cover"
             />
           </div>
           <label className="btn-ghost px-3 py-2 rounded-lg text-xs cursor-pointer flex items-center gap-2">
             <Icon name="upload" size={14} />
-            <span>{uploading ? 'uploading…' : 'upload avatar'}</span>
+            <span>{uploading ? t('uploading') : t('profile.uploadAvatar')}</span>
             <input
               type="file"
               accept="image/*"
               className="sr-only"
-              aria-label="Upload avatar image"
+              aria-label={t('profile.uploadAvatar')}
               onChange={(e) => handleUpload(e.target.files?.[0])}
             />
           </label>
@@ -1260,48 +1619,49 @@ function ProfileTab({ config, saveConfig, showToast }) {
 
         <div className="space-y-3">
           <div>
-            <label htmlFor="profile-name" className="block text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>Name</label>
+            <label htmlFor="profile-name" className="block text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>{t('profile.name')}</label>
             <input
               id="profile-name"
               className="input"
               value={draft.name}
               onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-              placeholder="Your display name"
+              placeholder={t('profile.namePh')}
               maxLength={40}
             />
           </div>
           <div>
-            <label htmlFor="profile-title" className="block text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>Title / Tagline</label>
+            <label htmlFor="profile-title" className="block text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>{t('profile.title')}</label>
             <input
               id="profile-title"
               className="input"
               value={draft.title}
               onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-              placeholder="Short tagline"
+              placeholder={t('profile.titlePh')}
               maxLength={60}
             />
           </div>
           <div>
-            <label htmlFor="profile-bio" className="block text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>Bio</label>
+            <label htmlFor="profile-bio" className="block text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>{t('profile.bio')}</label>
             <textarea
               id="profile-bio"
               className="input"
               rows={3}
               value={draft.bio}
               onChange={(e) => setDraft({ ...draft, bio: e.target.value })}
-              placeholder="A few words about you"
+              placeholder={t('profile.bioPh')}
               maxLength={200}
             />
           </div>
           <div>
-            <label htmlFor="profile-avatar" className="block text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>Avatar URL (alternative)</label>
+            <label htmlFor="profile-avatar" className="block text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>{t('profile.avatarUrl')}</label>
             <input
               id="profile-avatar"
               className="input"
               value={draft.avatar}
               onChange={(e) => setDraft({ ...draft, avatar: e.target.value })}
-              placeholder="https://..."
+              placeholder="https://…"
               type="url"
+              dir="ltr"
             />
           </div>
         </div>
@@ -1309,7 +1669,7 @@ function ProfileTab({ config, saveConfig, showToast }) {
 
       <div className="flex justify-end pt-3">
         <button type="button" onClick={handleSave} className="btn-primary px-6 py-2.5 rounded-xl text-sm">
-          Save changes
+          {t('profile.saveBtn')}
         </button>
       </div>
     </div>
@@ -1320,6 +1680,7 @@ function ProfileTab({ config, saveConfig, showToast }) {
 // LINKS TAB
 // ----------------------------------------------------------------------------
 function LinksTab({ config, saveConfig, showToast }) {
+  const { t } = useLang();
   const [links, setLinks] = useState(config.links || []);
 
   useEffect(() => { setLinks(config.links || []); }, [config.links]);
@@ -1343,20 +1704,20 @@ function LinksTab({ config, saveConfig, showToast }) {
 
   const save = async () => {
     await saveConfig({ links });
-    showToast('Links saved');
+    showToast(t('links.saved'));
   };
 
   return (
     <div className="card p-6 space-y-4">
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="font-display text-xl" style={{ color: 'var(--primary)' }}>Social Links</h2>
-        <button type="button" onClick={addLink} className="btn-ghost px-3 py-2 rounded-lg text-sm flex items-center gap-2">
-          <Icon name="plus" size={14} /> <span>Add link</span>
+      <div className="flex items-center justify-between mb-2 gap-3">
+        <h2 className="font-display text-xl" style={{ color: 'var(--primary)' }}>{t('links.heading')}</h2>
+        <button type="button" onClick={addLink} className="btn-ghost px-3 py-2 rounded-lg text-sm flex items-center gap-2 flex-shrink-0">
+          <Icon name="plus" size={14} /> <span>{t('links.add')}</span>
         </button>
       </div>
 
       {links.length === 0 && (
-        <div className="text-center py-8 text-sm" style={{ color: 'var(--text-tertiary)' }}>No links yet — click Add link to create one</div>
+        <div className="text-center py-8 text-sm" style={{ color: 'var(--text-tertiary)' }}>{t('links.empty')}</div>
       )}
 
       <ul className="space-y-3 list-none p-0">
@@ -1367,9 +1728,9 @@ function LinksTab({ config, saveConfig, showToast }) {
           const typeId = `link-type-${link.id}`;
           return (
             <li key={link.id} className="p-3 rounded-xl space-y-2" style={{ background: 'var(--surface-2)' }}>
-              <div className="flex gap-2 items-center">
+              <div className="flex gap-2 items-center flex-wrap sm:flex-nowrap">
                 <div style={{ color: 'var(--primary)' }} aria-hidden="true"><Icon name={preset.icon} size={20} /></div>
-                <label htmlFor={typeId} className="sr-only">Platform</label>
+                <label htmlFor={typeId} className="sr-only">{t('links.platform')}</label>
                 <select
                   id={typeId}
                   className="input"
@@ -1381,28 +1742,28 @@ function LinksTab({ config, saveConfig, showToast }) {
                     <option key={p.id} value={p.id} style={{ background: 'var(--surface)' }}>{p.label}</option>
                   ))}
                 </select>
-                <label htmlFor={labelId} className="sr-only">Link label</label>
+                <label htmlFor={labelId} className="sr-only">{t('links.label')}</label>
                 <input
                   id={labelId}
-                  className="input"
+                  className="input min-w-0 flex-1"
                   value={link.label}
                   onChange={(e) => updateLink(link.id, { label: e.target.value })}
                   placeholder={preset.label}
                   maxLength={30}
                 />
-                <div className="flex gap-1">
-                  <button type="button" onClick={() => move(idx, -1)} disabled={idx === 0} className="btn-ghost w-9 h-9 rounded-lg flex items-center justify-center disabled:opacity-40" aria-label={`Move ${preset.label} link up`}>
+                <div className="flex gap-1 flex-shrink-0">
+                  <button type="button" onClick={() => move(idx, -1)} disabled={idx === 0} className="btn-ghost w-9 h-9 rounded-lg flex items-center justify-center disabled:opacity-40" aria-label={t('links.moveUp')}>
                     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15l7-7 7 7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/></svg>
                   </button>
-                  <button type="button" onClick={() => move(idx, 1)} disabled={idx === links.length - 1} className="btn-ghost w-9 h-9 rounded-lg flex items-center justify-center disabled:opacity-40" aria-label={`Move ${preset.label} link down`}>
+                  <button type="button" onClick={() => move(idx, 1)} disabled={idx === links.length - 1} className="btn-ghost w-9 h-9 rounded-lg flex items-center justify-center disabled:opacity-40" aria-label={t('links.moveDown')}>
                     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 9l-7 7-7-7" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/></svg>
                   </button>
-                  <button type="button" onClick={() => removeLink(link.id)} className="btn-ghost w-9 h-9 rounded-lg flex items-center justify-center" style={{ color: 'var(--danger)' }} aria-label={`Delete ${preset.label} link`}>
+                  <button type="button" onClick={() => removeLink(link.id)} className="btn-ghost w-9 h-9 rounded-lg flex items-center justify-center" style={{ color: 'var(--danger)' }} aria-label={t('links.deleteLink')}>
                     <Icon name="trash" size={14} />
                   </button>
                 </div>
               </div>
-              <label htmlFor={urlId} className="sr-only">URL for {preset.label}</label>
+              <label htmlFor={urlId} className="sr-only">{t('links.url')}</label>
               <input
                 id={urlId}
                 className="input"
@@ -1410,6 +1771,7 @@ function LinksTab({ config, saveConfig, showToast }) {
                 onChange={(e) => updateLink(link.id, { url: e.target.value })}
                 placeholder={preset.placeholder}
                 type="url"
+                dir="ltr"
               />
             </li>
           );
@@ -1417,7 +1779,7 @@ function LinksTab({ config, saveConfig, showToast }) {
       </ul>
 
       <div className="flex justify-end pt-2">
-        <button type="button" onClick={save} className="btn-primary px-6 py-2.5 rounded-xl text-sm">Save links</button>
+        <button type="button" onClick={save} className="btn-primary px-6 py-2.5 rounded-xl text-sm">{t('links.saveBtn')}</button>
       </div>
     </div>
   );
@@ -1427,6 +1789,7 @@ function LinksTab({ config, saveConfig, showToast }) {
 // THEMES TAB
 // ----------------------------------------------------------------------------
 function ThemesTab({ config, saveConfig, showToast }) {
+  const { t } = useLang();
   const [theme, setTheme] = useState(config.theme);
   const [uploading, setUploading] = useState(false);
 
@@ -1435,7 +1798,7 @@ function ThemesTab({ config, saveConfig, showToast }) {
   const applyAndSave = async (next) => {
     setTheme(next);
     await saveConfig({ theme: next });
-    showToast('Theme applied');
+    showToast(t('themes.applied'));
   };
 
   const uploadBg = async (file) => {
@@ -1448,16 +1811,18 @@ function ThemesTab({ config, saveConfig, showToast }) {
       await applyAndSave({ ...theme, backgroundImage: url });
     } catch (e) {
       console.error(e);
-      showToast('Upload failed');
+      showToast(t('profile.uploadFailed'));
     }
     setUploading(false);
   };
 
+  const bgIsVideo = isVideoUrl(theme.backgroundImage);
+
   return (
     <div className="space-y-5">
       <div className="card p-6">
-        <h2 className="font-display text-xl mb-4" style={{ color: 'var(--primary)' }}>Theme Presets</h2>
-        <div role="radiogroup" aria-label="Choose a theme preset" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <h2 className="font-display text-xl mb-4" style={{ color: 'var(--primary)' }}>{t('themes.presets')}</h2>
+        <div role="radiogroup" aria-label={t('themes.chooseAria')} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {Object.entries(THEMES).map(([key, t]) => (
             <button
               type="button"
@@ -1486,9 +1851,9 @@ function ThemesTab({ config, saveConfig, showToast }) {
       />
 
       <div className="card p-6 space-y-4">
-        <h2 className="font-display text-xl" style={{ color: 'var(--primary)' }}>Background</h2>
+        <h2 className="font-display text-xl" style={{ color: 'var(--primary)' }}>{t('themes.bg')}</h2>
         <div>
-          <div id="bg-effect-label" className="block text-xs uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>Effect</div>
+          <div id="bg-effect-label" className="block text-xs uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>{t('themes.effect')}</div>
           <div role="radiogroup" aria-labelledby="bg-effect-label" className="flex gap-2 flex-wrap">
             {['aurora', 'particles', 'none'].map(eff => (
               <button
@@ -1505,25 +1870,37 @@ function ThemesTab({ config, saveConfig, showToast }) {
           </div>
         </div>
         <div>
-          <label htmlFor="bg-image-url" className="block text-xs uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>Background image URL</label>
-          <div className="flex gap-2">
+          <label htmlFor="bg-image-url" className="block text-xs uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>
+            {t('themes.bgImage')} {bgIsVideo && <span className="ml-2 font-mono text-[10px] px-2 py-0.5 rounded" style={{ background: 'var(--primary-soft)', color: 'var(--primary)' }}>VIDEO</span>}
+          </label>
+          <div className="flex gap-2 flex-wrap sm:flex-nowrap">
             <input
               id="bg-image-url"
-              className="input"
+              className="input min-w-0 flex-1"
               value={theme.backgroundImage || ''}
               onChange={(e) => setTheme({ ...theme, backgroundImage: e.target.value })}
-              placeholder="https://... or upload"
+              placeholder="https://… .jpg / .mp4"
               type="url"
+              dir="ltr"
             />
-            <label className="btn-ghost px-4 rounded-xl text-sm cursor-pointer flex items-center gap-2 whitespace-nowrap">
-              <Icon name="upload" size={14} /> <span>{uploading ? 'uploading…' : 'upload'}</span>
-              <input type="file" accept="image/*" className="sr-only" aria-label="Upload background image" onChange={(e) => uploadBg(e.target.files?.[0])} />
+            <label className="btn-ghost px-4 py-2.5 rounded-xl text-sm cursor-pointer flex items-center gap-2 whitespace-nowrap">
+              <Icon name="upload" size={14} /> <span>{uploading ? t('uploading') : t('upload')}</span>
+              <input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" className="sr-only" aria-label={t('themes.bgImage')} onChange={(e) => uploadBg(e.target.files?.[0])} />
             </label>
           </div>
+          {bgIsVideo && (
+            <video
+              src={theme.backgroundImage}
+              autoPlay muted loop playsInline
+              className="mt-3 w-full rounded-lg"
+              style={{ maxHeight: 180, objectFit: 'cover' }}
+              aria-label={t('themes.bgImage')}
+            />
+          )}
         </div>
         <div>
           <label htmlFor="bg-overlay" className="block text-xs uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>
-            Overlay darkness <span className="ml-2 font-mono" style={{ color: 'var(--text-secondary)' }}>{Math.round((theme.backgroundOverlay ?? 0.6) * 100)}%</span>
+            {t('themes.overlay')} <span className="ml-2 font-mono tabular" style={{ color: 'var(--text-secondary)' }}>{Math.round((theme.backgroundOverlay ?? 0.6) * 100)}%</span>
           </label>
           <input
             id="bg-overlay"
@@ -1539,10 +1916,10 @@ function ThemesTab({ config, saveConfig, showToast }) {
         <div className="flex justify-end gap-2">
           {theme.backgroundImage && (
             <button type="button" onClick={() => applyAndSave({ ...theme, backgroundImage: '' })} className="btn-ghost px-4 py-2 rounded-xl text-sm">
-              Remove image
+              {t('themes.removeImage')}
             </button>
           )}
-          <button type="button" onClick={() => applyAndSave(theme)} className="btn-primary px-6 py-2 rounded-xl text-sm">Apply</button>
+          <button type="button" onClick={() => applyAndSave(theme)} className="btn-primary px-6 py-2 rounded-xl text-sm">{t('apply')}</button>
         </div>
       </div>
     </div>
@@ -1550,6 +1927,7 @@ function ThemesTab({ config, saveConfig, showToast }) {
 }
 
 function CustomThemeEditor({ theme, onApply, isActive }) {
+  const { t } = useLang();
   const init = theme.custom || THEMES.midnight_galaxy;
   const [custom, setCustom] = useState({
     ...init,
@@ -1557,13 +1935,13 @@ function CustomThemeEditor({ theme, onApply, isActive }) {
   });
 
   const fields = [
-    { key: 'bg', label: 'Background' },
-    { key: 'surface', label: 'Surface' },
-    { key: 'surface2', label: 'Surface 2' },
-    { key: 'primary', label: 'Primary' },
-    { key: 'accent', label: 'Accent' },
-    { key: 'text', label: 'Text' },
-    { key: 'textSecondary', label: 'Text Secondary' }
+    { key: 'bg', label: t('themes.fieldBg') },
+    { key: 'surface', label: t('themes.fieldSurface') },
+    { key: 'surface2', label: t('themes.fieldSurface2') },
+    { key: 'primary', label: t('themes.fieldPrimary') },
+    { key: 'accent', label: t('themes.fieldAccent') },
+    { key: 'text', label: t('themes.fieldText') },
+    { key: 'textSecondary', label: t('themes.fieldTextSecondary') }
   ];
 
   const handleApply = () => {
@@ -1577,10 +1955,10 @@ function CustomThemeEditor({ theme, onApply, isActive }) {
   };
 
   return (
-    <div className={`card p-6 ${isActive ? '' : ''}`}>
+    <div className="card p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-display text-xl" style={{ color: 'var(--primary)' }}>Custom Theme</h2>
-        {isActive && <span className="text-xs px-2 py-1 rounded" style={{ background: 'var(--primary)', color: 'var(--bg)' }}>active</span>}
+        <h2 className="font-display text-xl" style={{ color: 'var(--primary)' }}>{t('themes.custom')}</h2>
+        {isActive && <span className="text-xs px-2 py-1 rounded" style={{ background: 'var(--primary)', color: 'var(--bg)' }}>{t('active')}</span>}
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
         {fields.map(f => {
@@ -1614,7 +1992,7 @@ function CustomThemeEditor({ theme, onApply, isActive }) {
       </div>
       <div className="flex justify-end">
         <button type="button" onClick={handleApply} className="btn-primary px-6 py-2 rounded-xl text-sm">
-          Apply custom
+          {t('themes.applyCustom')}
         </button>
       </div>
     </div>
@@ -1625,6 +2003,7 @@ function CustomThemeEditor({ theme, onApply, isActive }) {
 // AUDIO TAB
 // ----------------------------------------------------------------------------
 function AudioTab({ config, saveConfig, showToast }) {
+  const { t } = useLang();
   const [audio, setAudio] = useState(config.audio);
   const [uploading, setUploading] = useState(null);
   const previewRef = useRef(null);
@@ -1639,49 +2018,50 @@ function AudioTab({ config, saveConfig, showToast }) {
       const snap = await storage.ref(path).put(file);
       const url = await snap.ref.getDownloadURL();
       setAudio(a => ({ ...a, [key]: url }));
-      showToast('Audio uploaded');
+      showToast(t('audio.uploaded'));
     } catch (e) {
       console.error(e);
-      showToast('Upload failed');
+      showToast(t('profile.uploadFailed'));
     }
     setUploading(null);
   };
 
   const save = async () => {
     await saveConfig({ audio });
-    showToast('Audio settings saved');
+    showToast(t('audio.saved'));
   };
 
   return (
     <div className="card p-6 space-y-5">
-      <h2 className="font-display text-xl mb-2" style={{ color: 'var(--primary)' }}>Audio</h2>
+      <h2 className="font-display text-xl mb-2" style={{ color: 'var(--primary)' }}>{t('audio.heading')}</h2>
 
       <div className="space-y-4">
         <div>
-          <label htmlFor="audio-bg-url" className="block text-xs uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>Background music URL</label>
-          <div className="flex gap-2 mb-2">
+          <label htmlFor="audio-bg-url" className="block text-xs uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>{t('audio.bgUrl')}</label>
+          <div className="flex gap-2 mb-2 flex-wrap sm:flex-nowrap">
             <input
               id="audio-bg-url"
-              className="input"
+              className="input min-w-0 flex-1"
               value={audio.backgroundUrl || ''}
               onChange={(e) => setAudio({ ...audio, backgroundUrl: e.target.value })}
-              placeholder="https://... .mp3"
+              placeholder="https://… .mp3"
               type="url"
+              dir="ltr"
             />
-            <label className="btn-ghost px-4 rounded-xl text-sm cursor-pointer flex items-center gap-2 whitespace-nowrap">
-              <Icon name="upload" size={14} /> <span>{uploading === 'backgroundUrl' ? 'uploading…' : 'upload'}</span>
-              <input type="file" accept="audio/*" className="sr-only" aria-label="Upload background music file" onChange={(e) => uploadAudio(e.target.files?.[0], 'backgroundUrl')} />
+            <label className="btn-ghost px-4 py-2.5 rounded-xl text-sm cursor-pointer flex items-center gap-2 whitespace-nowrap">
+              <Icon name="upload" size={14} /> <span>{uploading === 'backgroundUrl' ? t('uploading') : t('upload')}</span>
+              <input type="file" accept="audio/*" className="sr-only" aria-label={t('audio.bgUrl')} onChange={(e) => uploadAudio(e.target.files?.[0], 'backgroundUrl')} />
             </label>
           </div>
           {audio.backgroundUrl && (
-            <audio ref={previewRef} src={audio.backgroundUrl} controls className="w-full" style={{ borderRadius: 8 }} aria-label="Background music preview" />
+            <audio ref={previewRef} src={audio.backgroundUrl} controls className="w-full" style={{ borderRadius: 8 }} aria-label={t('audio.preview')} />
           )}
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
             <label htmlFor="audio-volume" className="block text-xs uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>
-              Volume <span className="ml-2 font-mono" style={{ color: 'var(--text-secondary)' }}>{Math.round((audio.volume ?? 0.4) * 100)}%</span>
+              {t('audio.volume')} <span className="ml-2 font-mono tabular" style={{ color: 'var(--text-secondary)' }}>{Math.round((audio.volume ?? 0.4) * 100)}%</span>
             </label>
             <input
               id="audio-volume"
@@ -1701,7 +2081,7 @@ function AudioTab({ config, saveConfig, showToast }) {
                 onChange={(e) => setAudio({ ...audio, autoplay: e.target.checked })}
                 style={{ accentColor: 'var(--primary)', width: 18, height: 18 }}
               />
-              <span className="text-sm">Autoplay after entry</span>
+              <span className="text-sm">{t('audio.autoplay')}</span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer" style={{ minHeight: 24 }}>
               <input
@@ -1710,18 +2090,18 @@ function AudioTab({ config, saveConfig, showToast }) {
                 onChange={(e) => setAudio({ ...audio, loop: e.target.checked })}
                 style={{ accentColor: 'var(--primary)', width: 18, height: 18 }}
               />
-              <span className="text-sm">Loop</span>
+              <span className="text-sm">{t('audio.loop')}</span>
             </label>
           </div>
         </div>
 
         <div className="text-xs pt-2 border-t" style={{ borderColor: 'var(--border)', color: 'var(--text-tertiary)' }}>
-          Browsers block autoplay until the user clicks once — the "click to enter" overlay handles that.
+          {t('audio.note')}
         </div>
       </div>
 
       <div className="flex justify-end">
-        <button type="button" onClick={save} className="btn-primary px-6 py-2.5 rounded-xl text-sm">Save audio</button>
+        <button type="button" onClick={save} className="btn-primary px-6 py-2.5 rounded-xl text-sm">{t('audio.saveBtn')}</button>
       </div>
     </div>
   );
@@ -1731,6 +2111,7 @@ function AudioTab({ config, saveConfig, showToast }) {
 // SETTINGS TAB
 // ----------------------------------------------------------------------------
 function SettingsTab({ config, saveConfig, showToast }) {
+  const { t } = useLang();
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirmCode, setConfirmCode] = useState('');
@@ -1738,19 +2119,19 @@ function SettingsTab({ config, saveConfig, showToast }) {
 
   const changePassword = async (e) => {
     e.preventDefault();
-    if (next.length < 3) return showToast('Code too short (min 3 chars)');
-    if (next !== confirmCode) return showToast('Codes do not match');
+    if (next.length < 3) return showToast(t('settings.codeShort'));
+    if (next !== confirmCode) return showToast(t('settings.codeMismatch'));
     setBusy(true);
     const curHash = await sha256(current);
     if (curHash !== (config.auth?.passwordHash || DEFAULT_PASSWORD_HASH)) {
-      showToast('Current code is wrong');
+      showToast(t('settings.wrongCurrent'));
       setBusy(false);
       return;
     }
     const newHash = await sha256(next);
     await saveConfig({ auth: { passwordHash: newHash } });
     setCurrent(''); setNext(''); setConfirmCode('');
-    showToast('Code changed');
+    showToast(t('settings.codeChanged'));
     setBusy(false);
   };
 
@@ -1767,49 +2148,49 @@ function SettingsTab({ config, saveConfig, showToast }) {
   return (
     <div className="space-y-5">
       <div className="card p-6 space-y-4">
-        <h2 className="font-display text-xl" style={{ color: 'var(--primary)' }}>Change secret code</h2>
+        <h2 className="font-display text-xl" style={{ color: 'var(--primary)' }}>{t('settings.changeCode')}</h2>
         <form onSubmit={changePassword} className="space-y-3 max-w-md">
           <div>
-            <label htmlFor="cur-code" className="block text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>Current code</label>
+            <label htmlFor="cur-code" className="block text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>{t('settings.currentCode')}</label>
             <input id="cur-code" className="input" type="password" autoComplete="current-password" value={current} onChange={e => setCurrent(e.target.value)} />
           </div>
           <div>
-            <label htmlFor="new-code" className="block text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>New code</label>
+            <label htmlFor="new-code" className="block text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>{t('settings.newCode')}</label>
             <input id="new-code" className="input" type="password" autoComplete="new-password" value={next} onChange={e => setNext(e.target.value)} />
           </div>
           <div>
-            <label htmlFor="conf-code" className="block text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>Confirm new code</label>
+            <label htmlFor="conf-code" className="block text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-tertiary)' }}>{t('settings.confirmCode')}</label>
             <input id="conf-code" className="input" type="password" autoComplete="new-password" value={confirmCode} onChange={e => setConfirmCode(e.target.value)} />
           </div>
           <button type="submit" disabled={busy} className="btn-primary px-6 py-2.5 rounded-xl text-sm">
-            {busy ? 'updating…' : 'Update code'}
+            {busy ? t('settings.updating') : t('settings.updateBtn')}
           </button>
         </form>
       </div>
 
       <div className="card p-6 space-y-3">
-        <h2 className="font-display text-xl" style={{ color: 'var(--primary)' }}>Backup</h2>
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Download a JSON file with all your settings.</p>
+        <h2 className="font-display text-xl" style={{ color: 'var(--primary)' }}>{t('settings.backup')}</h2>
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('settings.backupDesc')}</p>
         <div>
           <button type="button" onClick={exportData} className="btn-ghost px-5 py-2 rounded-xl text-sm items-center gap-2 inline-flex">
-            <Icon name="upload" size={14} className="rotate-180" /> <span>Export JSON</span>
+            <Icon name="upload" size={14} className="rotate-180" /> <span>{t('settings.exportBtn')}</span>
           </button>
         </div>
       </div>
 
       <div className="card p-6 space-y-3" style={{ borderColor: 'rgba(255, 107, 107, 0.3)' }}>
-        <h2 className="font-display text-xl" style={{ color: 'var(--danger)' }}>Danger zone</h2>
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Reset all settings to defaults.</p>
+        <h2 className="font-display text-xl" style={{ color: 'var(--danger)' }}>{t('settings.danger')}</h2>
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('settings.dangerDesc')}</p>
         <button
           type="button"
           onClick={async () => {
-            if (!window.confirm('Reset everything to defaults? This cannot be undone.')) return;
+            if (!window.confirm(t('settings.resetConfirm'))) return;
             await saveConfig(DEFAULT_CONFIG);
-            showToast('Reset complete');
+            showToast(t('settings.resetDone'));
           }}
           className="btn-danger px-5 py-2 rounded-xl text-sm"
         >
-          Reset to defaults
+          {t('settings.resetBtn')}
         </button>
       </div>
     </div>
@@ -1842,7 +2223,9 @@ class ErrorBoundary extends React.Component {
 const rootEl = document.getElementById('root');
 rootEl.dataset.mounted = '1';
 ReactDOM.createRoot(rootEl).render(
-  <ErrorBoundary><App /></ErrorBoundary>
+  <ErrorBoundary>
+    <LangProvider><App /></LangProvider>
+  </ErrorBoundary>
 );
   </script>
 </body>
