@@ -27,15 +27,21 @@
 
   <script>
     // Catch any error that occurs before React mounts and surface it instead of leaving the loading screen forever
+    var __lastBabelError = null;
     window.addEventListener('error', function (e) {
       var root = document.getElementById('root');
       if (root && !root.dataset.mounted) {
-        root.innerHTML = '<div style="position:fixed;inset:0;padding:24px;color:#ff6b6b;font:12px/1.5 monospace;background:#0a0a0f;overflow:auto;"><h1 style="font:600 18px/1.2 serif;color:#d4af37;margin-bottom:12px;">init error</h1><pre style="white-space:pre-wrap;">' +
-          ((e && (e.message || e.error && e.error.message)) || 'unknown') +
-          '\n' + ((e && e.filename) || '') + ':' + ((e && e.lineno) || '') + '</pre><p style="opacity:.6;margin-top:16px;">Open the console for the full stack trace.</p></div>';
+        var msg = (e && (e.message || (e.error && e.error.message))) || 'unknown';
+        var stack = (e && e.error && e.error.stack) || (__lastBabelError && __lastBabelError.stack) || '';
+        var babelMsg = (__lastBabelError && __lastBabelError.message) || '';
+        var loc = ((e && e.filename) || '') + ':' + ((e && e.lineno) || '') + ':' + ((e && e.colno) || '');
+        root.innerHTML = '<div style="position:fixed;inset:0;padding:24px;color:#ff6b6b;font:12px/1.5 monospace;background:#0a0a0f;overflow:auto;"><h1 style="font:600 18px/1.2 serif;color:#d4af37;margin-bottom:12px;">init error</h1><pre style="white-space:pre-wrap;font-size:11px;">' +
+          msg + '\n' + loc + (babelMsg ? '\n\n[babel] ' + babelMsg : '') + (stack ? '\n\n' + stack : '') +
+          '</pre><p style="opacity:.6;margin-top:16px;">Open the console (F12) for the full stack trace.</p></div>';
       }
     });
     window.addEventListener('unhandledrejection', function (e) {
+      __lastBabelError = e.reason || __lastBabelError;
       console.warn('[gnmc] unhandled rejection', e.reason);
     });
     // 6-second emergency fallback — if React hasn't claimed the root by then, show a recoverable message
@@ -597,10 +603,20 @@ async function verifyPassword(password, stored) {
 }
 
 // HTML-escape for safe interpolation into SVG string templates.
+// Plain string ops on purpose — a regex literal here once tripped the JSX parser inside this <script type=text/babel> block.
 function escapeForSvgText(s) {
-  return String(s ?? '').replace(/[&<>"']/g, ch => (
-    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
-  ));
+  const str = (s == null) ? '' : String(s);
+  let out = '';
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    if (ch === 38) out += '&amp;';
+    else if (ch === 60) out += '&lt;';
+    else if (ch === 62) out += '&gt;';
+    else if (ch === 34) out += '&quot;';
+    else if (ch === 39) out += '&#39;';
+    else out += str[i];
+  }
+  return out;
 }
 
 // Collision-resistant id. Falls back to Math.random in ancient browsers.
