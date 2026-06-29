@@ -129,7 +129,9 @@
       border-radius: 50%;
       filter: blur(100px);
       opacity: 0.35;
-      animation: aurora 20s ease-in-out infinite alternate;
+      will-change: transform;
+      transform: translateZ(0);
+      animation: aurora 24s ease-in-out infinite alternate;
     }
     .aurora-bg::before {
       background: radial-gradient(circle, var(--primary) 0%, transparent 65%);
@@ -156,7 +158,9 @@
       background: var(--primary);
       border-radius: 50%;
       opacity: 0.6;
-      animation: float 12s linear infinite;
+      will-change: transform, opacity;
+      transform: translateZ(0);
+      animation: float 14s linear infinite;
     }
     @keyframes float {
       0%   { transform: translateY(110vh) translateX(0); opacity: 0; }
@@ -200,6 +204,30 @@
       border: 1px solid var(--border);
       border-radius: 18px;
       backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      contain: layout style;
+    }
+
+    /* Glass panel (profile content wrapper, optional) */
+    .glass-panel {
+      background: rgba(20, 20, 31, 0.42);
+      backdrop-filter: blur(28px) saturate(160%);
+      -webkit-backdrop-filter: blur(28px) saturate(160%);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 28px;
+      padding: 32px 22px 36px;
+      box-shadow: 0 30px 80px -20px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04);
+      contain: layout style;
+    }
+    .glass-panel .link-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .glass-panel .link-card:hover {
+      background: rgba(255,255,255,0.07);
+      border-color: var(--primary);
     }
 
     /* Input */
@@ -234,7 +262,9 @@
       border-radius: 50%;
       padding: 4px;
       background: conic-gradient(from 0deg, var(--primary), var(--accent), var(--primary));
-      animation: rotate 8s linear infinite;
+      animation: rotate 10s linear infinite;
+      will-change: transform;
+      transform: translateZ(0);
     }
     @keyframes rotate { to { transform: rotate(360deg); } }
     .avatar-inner {
@@ -524,9 +554,62 @@ async function sha256(text) {
     .map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-const DEFAULT_PASSWORD_HASH = '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4'; // sha256("1234")
+// Legacy sha256("1234") — kept so old configs still log in on first run, then auto-upgraded to PBKDF2
+const DEFAULT_PASSWORD_HASH = '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4';
 
-const uid = () => Math.random().toString(36).slice(2, 10);
+// Hex <-> bytes
+function bytesToHex(bytes) {
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function hexToBytes(hex) {
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16);
+  return out;
+}
+
+// PBKDF2 password hashing (SHA-256, 120k iterations, 128-bit salt, 256-bit derived key).
+// Output shape: { algo:'pbkdf2', salt, hash, iter } — stored on auth.passwordHash
+async function hashPasswordPBKDF2(password, saltBytes) {
+  const enc = new TextEncoder();
+  const salt = saltBytes || crypto.getRandomValues(new Uint8Array(16));
+  const iter = 120000;
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', enc.encode(password), { name: 'PBKDF2' }, false, ['deriveBits']
+  );
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' },
+    keyMaterial, 256
+  );
+  return { algo: 'pbkdf2', salt: bytesToHex(salt), hash: bytesToHex(new Uint8Array(bits)), iter };
+}
+
+// Verify a password against the stored shape. Supports legacy raw sha256 hex strings (auto-upgrade path).
+async function verifyPassword(password, stored) {
+  if (!stored) return false;
+  if (typeof stored === 'string') {
+    return (await sha256(password)) === stored;
+  }
+  if (stored.algo === 'pbkdf2' && stored.salt) {
+    const probe = await hashPasswordPBKDF2(password, hexToBytes(stored.salt));
+    return probe.hash === stored.hash;
+  }
+  return false;
+}
+
+// HTML-escape for safe interpolation into SVG string templates.
+function escapeForSvgText(s) {
+  return String(s ?? '').replace(/[&<>"']/g, ch => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
+  ));
+}
+
+// Collision-resistant id. Falls back to Math.random in ancient browsers.
+const uid = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+  }
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+};
 
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -537,27 +620,127 @@ function fileToDataUrl(file) {
   });
 }
 
+// ----------------------------------------------------------------------------
+// Image compression — runs in-browser via <canvas>. Lets us fit any photo into
+// Firestore (~1MB doc limit) so uploads work even when Storage is unavailable.
+// ----------------------------------------------------------------------------
+function compressImageOnce(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const ratio = Math.min(maxDim / width, maxDim / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        // White background avoids black on transparent PNGs converted to JPEG
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return reject(new Error('canvas toBlob failed'));
+            const name = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+            resolve(new File([blob], name, { type: 'image/jpeg' }));
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = () => reject(new Error('image decode failed'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(reader.error || new Error('FileReader failed'));
+    reader.readAsDataURL(file);
+  });
+}
+
+// Iteratively shrink until under targetKB so the data URL stays inside Firestore's 1MB doc cap.
+async function compressImageToTarget(file, targetKB = 650) {
+  const attempts = [
+    { dim: 1600, q: 0.85 },
+    { dim: 1400, q: 0.8 },
+    { dim: 1200, q: 0.75 },
+    { dim: 1000, q: 0.7 },
+    { dim: 900,  q: 0.65 },
+    { dim: 800,  q: 0.6 },
+    { dim: 700,  q: 0.55 },
+    { dim: 600,  q: 0.5 },
+    { dim: 500,  q: 0.45 }
+  ];
+  let last = null;
+  for (const { dim, q } of attempts) {
+    const c = await compressImageOnce(file, dim, q);
+    last = c;
+    if (c.size / 1024 <= targetKB) return c;
+  }
+  return last;
+}
+
+// Human-readable label for a Firebase error code so the toast actually tells the user what's wrong.
+function describeFirebaseError(err) {
+  const code = err && (err.code || err.code_) || '';
+  const msg = err && err.message || String(err || '');
+  if (code === 'storage/unauthorized' || /unauthorized|permission/i.test(msg)) return 'permission-denied';
+  if (code === 'storage/canceled') return 'canceled';
+  if (code === 'storage/quota-exceeded') return 'quota-exceeded';
+  if (code === 'storage/unauthenticated') return 'unauthenticated';
+  if (code === 'storage/retry-limit-exceeded' || /network|cors|failed to fetch/i.test(msg)) return 'network';
+  if (code === 'storage/object-not-found') return 'not-found';
+  if (code) return code;
+  return msg.slice(0, 80);
+}
+
 // Upload helper: try Firebase Storage first, fall back to embedded data URL.
-// Returns { url, isLocal, sizeMB }. isLocal=true means stored as base64 in config (no cross-device sync, size-limited).
+// Images get compressed first, so the data URL fallback works even on multi-MB photos.
+// Returns { url, isLocal, sizeMB, originalMB, storageError }. isLocal=true means stored in Firestore as base64.
 async function uploadFile(file, folder) {
   if (!file) throw new Error('no file');
-  const sizeMB = file.size / (1024 * 1024);
+  const originalMB = file.size / (1024 * 1024);
+  const isImage = (file.type || '').startsWith('image/');
 
-  try {
-    const path = `${folder}/${Date.now()}_${file.name.replace(/[^a-z0-9._-]/gi,'_')}`;
-    const snap = await storage.ref(path).put(file);
-    const url = await snap.ref.getDownloadURL();
-    return { url, isLocal: false, sizeMB };
-  } catch (err) {
-    console.warn('[gnmc] Firebase Storage upload failed, falling back to data URL', err);
-    // Hard limit on embed: ~700KB after base64 expansion stays under Firestore's 1MB doc limit
-    const MAX_EMBED_MB = 0.7;
-    if (sizeMB > MAX_EMBED_MB) {
-      throw new Error(`FILE_TOO_LARGE_LOCAL:${sizeMB.toFixed(2)}`);
+  // Compress images up front. Keeps the Firestore-embed path viable for any reasonable photo.
+  let toUpload = file;
+  if (isImage) {
+    try {
+      toUpload = await compressImageToTarget(file, 650);
+    } catch (err) {
+      console.warn('[gnmc] image compression failed, using original', err);
+      toUpload = file;
     }
-    const url = await fileToDataUrl(file);
-    return { url, isLocal: true, sizeMB };
   }
+  const sizeMB = toUpload.size / (1024 * 1024);
+
+  // Try Firebase Storage first (best path — gives a real CDN URL).
+  let storageError = null;
+  try {
+    const safeName = toUpload.name.replace(/[^a-z0-9._-]/gi, '_');
+    const path = `${folder}/${Date.now()}_${safeName}`;
+    const snap = await storage.ref(path).put(toUpload);
+    const url = await snap.ref.getDownloadURL();
+    return { url, isLocal: false, sizeMB, originalMB, storageError: null };
+  } catch (err) {
+    storageError = describeFirebaseError(err);
+    console.warn('[gnmc] Firebase Storage failed → data URL fallback', storageError, err);
+  }
+
+  // Fall back to embedding as a data URL inside Firestore. Keeps everything cross-device
+  // even when Storage isn't reachable, as long as the file fits in ~1MB.
+  const MAX_EMBED_MB = 0.7;
+  if (sizeMB > MAX_EMBED_MB) {
+    const e = new Error(`FILE_TOO_LARGE_LOCAL:${sizeMB.toFixed(2)}`);
+    e.storageError = storageError;
+    throw e;
+  }
+  const url = await fileToDataUrl(toUpload);
+  return { url, isLocal: true, sizeMB, originalMB, storageError };
 }
 
 // ============================================================================
@@ -836,6 +1019,14 @@ const TRANSLATIONS = {
     'audio.saved': 'Audio settings saved',
     'audio.uploaded': 'Audio uploaded',
     'audio.preview': 'Background music preview',
+    'audio.loadFailed': 'Audio failed to load — check the URL or file format',
+    'audio.urlInvalid': 'Audio URL looks invalid — expected mp3/ogg/wav/m4a/aac',
+    'themes.glass': 'Glass effect on cards',
+    'themes.glassHint': 'frosted blur',
+    'themes.customMissing': 'Custom theme data missing — using default',
+    'sync.online': 'Synced',
+    'sync.offline': 'Saved locally (will sync when online)',
+    'sync.welcome': 'Welcome back',
     // settings tab
     'settings.changeCode': 'Change secret code',
     'settings.currentCode': 'Current code',
@@ -936,6 +1127,14 @@ const TRANSLATIONS = {
     'audio.saved': 'تم حفظ إعدادات الصوت',
     'audio.uploaded': 'تم رفع الصوت',
     'audio.preview': 'معاينة الموسيقى',
+    'audio.loadFailed': 'تعذّر تحميل الصوت — تحقق من الرابط أو الصيغة',
+    'audio.urlInvalid': 'رابط الصوت غير صالح — الصيغ المدعومة mp3/ogg/wav/m4a/aac',
+    'themes.glass': 'تأثير الزجاج على البطاقات',
+    'themes.glassHint': 'ضباب زجاجي',
+    'themes.customMissing': 'بيانات الثيم المخصص مفقودة — تم استخدام الافتراضي',
+    'sync.online': 'تمت المزامنة',
+    'sync.offline': 'تم الحفظ محلياً (ستتم المزامنة عند الاتصال)',
+    'sync.welcome': 'أهلاً بعودتك',
     'settings.changeCode': 'تغيير الرمز السري',
     'settings.currentCode': 'الرمز الحالي',
     'settings.newCode': 'الرمز الجديد',
@@ -1038,6 +1237,7 @@ const DEFAULT_CONFIG = {
   theme: {
     preset: 'midnight_galaxy',
     custom: null,
+    glass: true,
     backgroundImage: '',
     backgroundOverlay: 0.6,
     backgroundEffect: 'aurora' // 'aurora' | 'particles' | 'none'
@@ -1066,102 +1266,181 @@ function App() {
     toastTimer.current = setTimeout(() => setToast(null), 2600);
   }, []);
 
-  // Load + subscribe (with hard timeout so the UI never stalls on Firebase issues)
+  // useRef mirror of config — lets async callbacks (save, listener merge, retry) see the
+  // latest state without depending on stale closures via a useCallback dep array.
+  const configRef = useRef(null);
+  useEffect(() => { configRef.current = config; }, [config]);
+
+  // Pending write queue for offline saves — drained on reconnect.
+  const pendingWriteRef = useRef(null);
+  // Last write origin: prevents an inbound onSnapshot from clobbering an in-flight local edit.
+  const lastLocalWriteRef = useRef(0);
+
+  const mergeConfig = (data) => ({
+    ...DEFAULT_CONFIG, ...data,
+    profile: { ...DEFAULT_CONFIG.profile, ...(data.profile || {}) },
+    audio:   { ...DEFAULT_CONFIG.audio,   ...(data.audio   || {}) },
+    theme:   { ...DEFAULT_CONFIG.theme,   ...(data.theme   || {}) },
+    auth:    { ...DEFAULT_CONFIG.auth,    ...(data.auth    || {}) }
+  });
+
+  // Load + subscribe. Two independent jobs:
+  //   (a) End the "loading" screen quickly so the UI never stalls — uses localStorage if Firestore is slow.
+  //   (b) Keep an open onSnapshot listener forever so every device picks up edits made on other devices.
+  // The old code conflated these via a `settled` flag that locked out the listener after the timeout fired —
+  // that was the root cause of "edit on device A, device B never sees it".
   useEffect(() => {
-    let settled = false;
-    const finish = (cfg) => {
-      if (settled) return;
-      settled = true;
-      setConfig(cfg);
+    let loadedInitial = false;
+    const finishLoad = () => {
+      if (loadedInitial) return;
+      loadedInitial = true;
       setLoading(false);
     };
 
     let fallback = DEFAULT_CONFIG;
     try {
       const local = localStorage.getItem('gnmc_config');
-      if (local) fallback = { ...DEFAULT_CONFIG, ...JSON.parse(local) };
+      if (local) fallback = mergeConfig(JSON.parse(local));
     } catch (_) {}
 
-    const timer = setTimeout(() => {
-      if (!settled) {
-        console.warn('[gnmc] Firestore timeout (2.5s) — rendering with local/default config');
+    // Show the local snapshot fast — but DON'T mark anything settled. The listener still owns truth.
+    const fastTimer = setTimeout(() => {
+      if (!loadedInitial) {
+        console.warn('[gnmc] Firestore slow (2.5s) — showing local cache, listener still active');
         setError('offline');
-        finish(fallback);
+        setConfig(fallback);
+        finishLoad();
       }
     }, 2500);
 
     let unsub = () => {};
-    try {
-      unsub = CONFIG_DOC.onSnapshot(
-        (snap) => {
-          clearTimeout(timer);
-          if (snap.exists) {
-            const data = snap.data();
-            finish({
-              ...DEFAULT_CONFIG, ...data,
-              profile: { ...DEFAULT_CONFIG.profile, ...(data.profile||{}) },
-              audio:   { ...DEFAULT_CONFIG.audio,   ...(data.audio||{}) },
-              theme:   { ...DEFAULT_CONFIG.theme,   ...(data.theme||{}) },
-              auth:    { ...DEFAULT_CONFIG.auth,    ...(data.auth||{}) }
-            });
-          } else {
-            // Firestore is empty. If localStorage has prior edits, push them up instead of wiping.
-            const seed = fallback === DEFAULT_CONFIG ? DEFAULT_CONFIG : fallback;
-            CONFIG_DOC.set(seed).catch(()=>{});
-            finish(seed);
-          }
-        },
-        (err) => {
-          clearTimeout(timer);
-          console.warn('[gnmc] firestore error → fallback local', err);
-          setError('offline');
-          finish(fallback);
-        }
-      );
-    } catch (err) {
-      clearTimeout(timer);
-      console.error('[gnmc] firebase init failed', err);
-      setError('offline');
-      finish(fallback);
-    }
+    let retryTimer = null;
 
-    return () => { clearTimeout(timer); try { unsub(); } catch (_) {} };
+    const subscribe = () => {
+      try {
+        unsub = CONFIG_DOC.onSnapshot(
+          { includeMetadataChanges: false },
+          (snap) => {
+            clearTimeout(fastTimer);
+            // Don't let a stale server echo overwrite a write we just made ourselves (within 1.5s).
+            const recentLocalWrite = Date.now() - lastLocalWriteRef.current < 1500;
+            if (snap.exists) {
+              const merged = mergeConfig(snap.data());
+              setError(null);
+              if (!recentLocalWrite) {
+                setConfig(merged);
+                try { localStorage.setItem('gnmc_config', JSON.stringify(merged)); } catch (_) {}
+              }
+            } else {
+              // Empty doc — seed it from local edits if we have any, else defaults.
+              const seed = fallback === DEFAULT_CONFIG ? DEFAULT_CONFIG : fallback;
+              CONFIG_DOC.set(seed).catch(() => {});
+              if (!recentLocalWrite) setConfig(seed);
+            }
+            finishLoad();
+          },
+          (err) => {
+            clearTimeout(fastTimer);
+            console.warn('[gnmc] firestore listener error — will retry', err);
+            setError('offline');
+            if (!configRef.current) setConfig(fallback);
+            finishLoad();
+            // Retry the subscription on backoff so a transient network blip doesn't kill sync forever.
+            try { unsub(); } catch (_) {}
+            clearTimeout(retryTimer);
+            retryTimer = setTimeout(subscribe, 6000);
+          }
+        );
+      } catch (err) {
+        clearTimeout(fastTimer);
+        console.error('[gnmc] firebase init failed', err);
+        setError('offline');
+        if (!configRef.current) setConfig(fallback);
+        finishLoad();
+      }
+    };
+    subscribe();
+
+    // Try to drain the pending queue when the network returns.
+    const onOnline = () => {
+      const pending = pendingWriteRef.current;
+      if (!pending) return;
+      CONFIG_DOC.set(pending, { merge: true })
+        .then(() => { pendingWriteRef.current = null; showToast(t('sync.online')); })
+        .catch((err) => console.warn('[gnmc] retry-on-online failed', err));
+    };
+    window.addEventListener('online', onOnline);
+
+    return () => {
+      clearTimeout(fastTimer);
+      clearTimeout(retryTimer);
+      window.removeEventListener('online', onOnline);
+      try { unsub(); } catch (_) {}
+    };
   }, []);
 
-  // Apply theme + background
+  // Apply theme + background. Warns clearly when the custom theme is missing instead of silently swapping.
   useEffect(() => {
     if (!config) return;
     const themeKey = config.theme.preset;
-    const themeObj = themeKey === 'custom' && config.theme.custom
-      ? config.theme.custom
-      : THEMES[themeKey] || THEMES.midnight_galaxy;
+    let themeObj;
+    if (themeKey === 'custom') {
+      if (config.theme.custom) {
+        themeObj = config.theme.custom;
+      } else {
+        console.warn('[gnmc] custom theme data missing — falling back to midnight_galaxy');
+        themeObj = THEMES.midnight_galaxy;
+        showToast(t('themes.customMissing'));
+      }
+    } else {
+      themeObj = THEMES[themeKey] || THEMES.midnight_galaxy;
+    }
     applyTheme(themeObj);
     applyBackground(config.theme.backgroundImage, config.theme.backgroundOverlay);
-  }, [config?.theme]);
+  }, [config?.theme, showToast, t]);
 
-  // Save helper
+  // Save helper. Firestore is the source of truth — we write there first, then mirror to localStorage
+  // only on confirmed success. Failures get a clear toast AND queue for retry-on-online.
+  // Returns true if the write reached Firestore. Callers should only show success toast when true,
+  // otherwise the offline toast already shown by saveConfig would be paired with a misleading "saved".
   const saveConfig = useCallback(async (updates) => {
-    const newConfig = typeof updates === 'function' ? updates(config) : { ...config, ...updates };
+    const prev = configRef.current;
+    const newConfig = typeof updates === 'function' ? updates(prev) : { ...prev, ...updates };
     setConfig(newConfig);
-    localStorage.setItem('gnmc_config', JSON.stringify(newConfig));
+    lastLocalWriteRef.current = Date.now();
     try {
       await CONFIG_DOC.set(newConfig, { merge: true });
+      try { localStorage.setItem('gnmc_config', JSON.stringify(newConfig)); } catch (_) {}
+      pendingWriteRef.current = null;
+      return true;
     } catch (err) {
-      console.warn('save failed', err);
-      showToast('Saved locally (offline)');
+      console.warn('[gnmc] firestore save failed — queued for retry', err);
+      try { localStorage.setItem('gnmc_config', JSON.stringify(newConfig)); } catch (_) {}
+      pendingWriteRef.current = newConfig;
+      showToast(t('sync.offline'));
+      return false;
     }
-  }, [config, showToast]);
+  }, [showToast, t]);
 
   const handleCodeSubmit = useCallback(async (code) => {
-    const hash = await sha256(code);
-    if (hash === (config?.auth?.passwordHash || DEFAULT_PASSWORD_HASH)) {
-      setIsDashboard(true);
-      setShowCodeModal(false);
-      showToast('Welcome back');
-      return true;
+    const stored = configRef.current?.auth?.passwordHash || DEFAULT_PASSWORD_HASH;
+    const ok = await verifyPassword(code, stored);
+    if (!ok) return false;
+    // Auto-upgrade legacy sha256 → PBKDF2 on successful login.
+    if (typeof stored === 'string') {
+      try {
+        const upgraded = await hashPasswordPBKDF2(code);
+        saveConfig({ auth: { passwordHash: upgraded } });
+        console.info('[gnmc] password hash auto-upgraded to PBKDF2');
+      } catch (err) {
+        console.warn('[gnmc] PBKDF2 upgrade failed', err);
+      }
     }
-    return false;
-  }, [config, showToast]);
+    setIsDashboard(true);
+    setShowCodeModal(false);
+    showToast(t('sync.welcome'));
+    return true;
+  }, [showToast, saveConfig, t]);
 
   if (loading) {
     return (
@@ -1206,6 +1485,8 @@ function App() {
           src={config.audio.backgroundUrl}
           volume={config.audio.volume}
           loop={config.audio.loop}
+          autoplay={config.audio.autoplay}
+          onError={() => showToast(t('audio.loadFailed'))}
         />
       )}
 
@@ -1234,14 +1515,14 @@ function BackgroundLayer({ effect }) {
   if (effect === 'particles') {
     return (
       <div className="particles">
-        {Array.from({ length: 28 }).map((_, i) => (
+        {Array.from({ length: 14 }).map((_, i) => (
           <div
             key={i}
             className="particle"
             style={{
-              left: `${(i * 3.6) % 100}%`,
-              animationDelay: `${(i * 0.4) % 12}s`,
-              animationDuration: `${10 + (i % 6)}s`
+              left: `${(i * 7.2) % 100}%`,
+              animationDelay: `${(i * 0.8) % 14}s`,
+              animationDuration: `${12 + (i % 6)}s`
             }}
           />
         ))}
@@ -1254,14 +1535,32 @@ function BackgroundLayer({ effect }) {
 // ============================================================================
 // BACKGROUND AUDIO
 // ============================================================================
-function BackgroundAudio({ src, volume, loop }) {
+function BackgroundAudio({ src, volume, loop, autoplay, onError }) {
   const ref = useRef(null);
+  // Volume should react on its own — was previously batched with play() and re-triggered on every change.
   useEffect(() => {
     if (!ref.current) return;
-    ref.current.volume = volume ?? 0.4;
-    ref.current.play().catch(() => {});
-  }, [src, volume]);
-  return <audio ref={ref} src={src} loop={loop !== false} autoPlay />;
+    ref.current.volume = Math.max(0, Math.min(1, volume ?? 0.4));
+  }, [volume]);
+  // Play / pause react to autoplay toggle and to source changes, independently of volume.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (autoplay !== false) {
+      el.play().catch(() => {/* autoplay blocked — handled by the click-to-enter overlay */});
+    } else {
+      el.pause();
+    }
+  }, [src, autoplay]);
+  return (
+    <audio
+      ref={ref}
+      src={src}
+      loop={loop !== false}
+      preload="auto"
+      onError={() => onError && onError()}
+    />
+  );
 }
 
 // ============================================================================
@@ -1279,7 +1578,7 @@ function EntryOverlay({ config, onEnter }) {
     <button
       type="button"
       className="fixed inset-0 flex items-center justify-center fade-in"
-      style={{ zIndex: 40, background: 'transparent', border: 'none', cursor: 'pointer', width: '100vw', height: '100dvh' }}
+      style={{ zIndex: 40, background: 'transparent', border: 'none', cursor: 'pointer' }}
       onClick={onEnter}
       aria-label={t('entry.cta') + ' — ' + config.profile.name}
     >
@@ -1321,14 +1620,19 @@ function PublicProfile({ config, onSecretTrigger }) {
     });
   };
 
+  const fallbackInitial = escapeForSvgText((config.profile.name?.[0] || 'g').toUpperCase());
+  const fallbackFill = config.theme.preset === 'custom' ? '#14141f' : (THEMES[config.theme.preset]?.surface || '#14141f');
+  const fallbackPrimary = THEMES[config.theme.preset]?.primary || '#d4af37';
   const avatarSrc = config.profile.avatar ||
-    `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' fill='${config.theme.preset === 'custom' ? '#14141f' : THEMES[config.theme.preset]?.surface || '#14141f'}'/><text x='100' y='115' text-anchor='middle' font-family='Cinzel' font-size='80' fill='${THEMES[config.theme.preset]?.primary || '#d4af37'}' font-weight='700'>${(config.profile.name?.[0] || 'g').toUpperCase()}</text></svg>`)}`;
+    `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' fill='${fallbackFill}'/><text x='100' y='115' text-anchor='middle' font-family='Cinzel' font-size='80' fill='${fallbackPrimary}' font-weight='700'>${fallbackInitial}</text></svg>`)}`;
 
   const validLinks = (config.links || []).filter(l => l.url && l.url.trim());
 
+  const useGlass = config.theme.glass !== false;
+
   return (
     <main id="main" className="min-h-[100dvh] flex flex-col items-center px-4 py-12 sm:py-16 safe-pad-x">
-      <div className="w-full max-w-md fade-up">
+      <div className={`w-full max-w-md fade-up ${useGlass ? 'glass-panel' : ''}`}>
         {/* Avatar */}
         <div className="flex justify-center mb-6">
           <button
@@ -1603,8 +1907,8 @@ function ProfileTab({ config, saveConfig, showToast }) {
   const [uploading, setUploading] = useState(false);
 
   const handleSave = async () => {
-    await saveConfig({ profile: draft });
-    showToast(t('profile.saved'));
+    const ok = await saveConfig({ profile: draft });
+    if (ok) showToast(t('profile.saved'));
   };
 
   const handleUpload = async (file) => {
@@ -1614,8 +1918,8 @@ function ProfileTab({ config, saveConfig, showToast }) {
       const { url, isLocal } = await uploadFile(file, 'avatars');
       const next = { ...draft, avatar: url };
       setDraft(next);
-      await saveConfig({ profile: next });
-      showToast(isLocal ? t('upload.localOk') : t('profile.avatarSaved'));
+      const ok = await saveConfig({ profile: next });
+      if (ok) showToast(isLocal ? t('upload.localOk') : t('profile.avatarSaved'));
     } catch (err) {
       console.error(err);
       if (String(err.message || '').startsWith('FILE_TOO_LARGE_LOCAL')) {
@@ -1623,8 +1927,9 @@ function ProfileTab({ config, saveConfig, showToast }) {
       } else {
         showToast(t('profile.uploadFailed'));
       }
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   };
 
   return (
@@ -1635,10 +1940,12 @@ function ProfileTab({ config, saveConfig, showToast }) {
         <div className="flex flex-col items-center gap-3">
           <div className="w-32 h-32 rounded-full overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
             <img
-              src={draft.avatar || `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' fill='%23222'/><text x='100' y='130' text-anchor='middle' font-family='Cinzel' font-size='90' fill='%23d4af37' font-weight='700'>${(draft.name?.[0]||'g').toUpperCase()}</text></svg>`)}`}
+              src={draft.avatar || `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' fill='#222222'/><text x='100' y='130' text-anchor='middle' font-family='Cinzel' font-size='90' fill='#d4af37' font-weight='700'>${escapeForSvgText((draft.name?.[0]||'g').toUpperCase())}</text></svg>`)}`}
               alt=""
               width="128"
               height="128"
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover"
             />
           </div>
@@ -1741,8 +2048,8 @@ function LinksTab({ config, saveConfig, showToast }) {
   };
 
   const save = async () => {
-    await saveConfig({ links });
-    showToast(t('links.saved'));
+    const ok = await saveConfig({ links });
+    if (ok) showToast(t('links.saved'));
   };
 
   return (
@@ -1835,8 +2142,9 @@ function ThemesTab({ config, saveConfig, showToast }) {
 
   const applyAndSave = async (next) => {
     setTheme(next);
-    await saveConfig({ theme: next });
-    showToast(t('themes.applied'));
+    const ok = await saveConfig({ theme: next });
+    if (ok) showToast(t('themes.applied'));
+    return ok;
   };
 
   const uploadBg = async (file) => {
@@ -1844,8 +2152,8 @@ function ThemesTab({ config, saveConfig, showToast }) {
     setUploading(true);
     try {
       const { url, isLocal } = await uploadFile(file, 'backgrounds');
-      await applyAndSave({ ...theme, backgroundImage: url });
-      if (isLocal) showToast(t('upload.localOk'));
+      const ok = await applyAndSave({ ...theme, backgroundImage: url });
+      if (ok && isLocal) showToast(t('upload.localOk'));
     } catch (e) {
       console.error(e);
       if (String(e.message || '').startsWith('FILE_TOO_LARGE_LOCAL')) {
@@ -1853,8 +2161,9 @@ function ThemesTab({ config, saveConfig, showToast }) {
       } else {
         showToast(t('profile.uploadFailed'));
       }
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   };
 
   const bgIsVideo = isVideoUrl(theme.backgroundImage);
@@ -1909,6 +2218,18 @@ function ThemesTab({ config, saveConfig, showToast }) {
               </button>
             ))}
           </div>
+        </div>
+        <div className="pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
+          <label className="flex items-center gap-3 cursor-pointer pt-3" style={{ minHeight: 28 }}>
+            <input
+              type="checkbox"
+              checked={theme.glass !== false}
+              onChange={(e) => applyAndSave({ ...theme, glass: e.target.checked })}
+              style={{ accentColor: 'var(--primary)', width: 18, height: 18 }}
+            />
+            <span className="text-sm">{t('themes.glass')}</span>
+            <span className="text-xs ml-auto" style={{ color: 'var(--text-tertiary)' }}>{t('themes.glassHint')}</span>
+          </label>
         </div>
         <div>
           <label htmlFor="bg-image-url" className="block text-xs uppercase tracking-wider mb-2" style={{ color: 'var(--text-tertiary)' }}>
@@ -2051,6 +2372,13 @@ function AudioTab({ config, saveConfig, showToast }) {
 
   useEffect(() => { setAudio(config.audio); }, [config.audio]);
 
+  // Light validation: file: protocol via FileReader is fine, http(s) must end in a known audio ext.
+  const looksLikeAudioUrl = (url) => {
+    if (!url) return true;
+    if (url.startsWith('data:') || url.startsWith('blob:')) return true;
+    return /\.(mp3|ogg|oga|wav|m4a|aac|flac|webm)(\?|#|$)/i.test(url);
+  };
+
   const uploadAudio = async (file, key) => {
     if (!file) return;
     setUploading(key);
@@ -2058,8 +2386,8 @@ function AudioTab({ config, saveConfig, showToast }) {
       const { url, isLocal } = await uploadFile(file, 'audio');
       const nextAudio = { ...audio, [key]: url };
       setAudio(nextAudio);
-      await saveConfig({ audio: nextAudio });
-      showToast(isLocal ? t('upload.localOk') : t('audio.uploaded'));
+      const ok = await saveConfig({ audio: nextAudio });
+      if (ok) showToast(isLocal ? t('upload.localOk') : t('audio.uploaded'));
     } catch (e) {
       console.error(e);
       if (String(e.message || '').startsWith('FILE_TOO_LARGE_LOCAL')) {
@@ -2067,13 +2395,18 @@ function AudioTab({ config, saveConfig, showToast }) {
       } else {
         showToast(t('profile.uploadFailed'));
       }
+    } finally {
+      setUploading(null);
     }
-    setUploading(null);
   };
 
   const save = async () => {
-    await saveConfig({ audio });
-    showToast(t('audio.saved'));
+    if (audio.backgroundUrl && !looksLikeAudioUrl(audio.backgroundUrl)) {
+      showToast(t('audio.urlInvalid'));
+      return;
+    }
+    const ok = await saveConfig({ audio });
+    if (ok) showToast(t('audio.saved'));
   };
 
   return (
@@ -2167,21 +2500,27 @@ function SettingsTab({ config, saveConfig, showToast }) {
     if (next.length < 3) return showToast(t('settings.codeShort'));
     if (next !== confirmCode) return showToast(t('settings.codeMismatch'));
     setBusy(true);
-    const curHash = await sha256(current);
-    if (curHash !== (config.auth?.passwordHash || DEFAULT_PASSWORD_HASH)) {
-      showToast(t('settings.wrongCurrent'));
+    try {
+      const stored = config.auth?.passwordHash || DEFAULT_PASSWORD_HASH;
+      const ok = await verifyPassword(current, stored);
+      if (!ok) {
+        showToast(t('settings.wrongCurrent'));
+        return;
+      }
+      const newHash = await hashPasswordPBKDF2(next);
+      const ok = await saveConfig({ auth: { passwordHash: newHash } });
+      setCurrent(''); setNext(''); setConfirmCode('');
+      if (ok) showToast(t('settings.codeChanged'));
+    } finally {
       setBusy(false);
-      return;
     }
-    const newHash = await sha256(next);
-    await saveConfig({ auth: { passwordHash: newHash } });
-    setCurrent(''); setNext(''); setConfirmCode('');
-    showToast(t('settings.codeChanged'));
-    setBusy(false);
   };
 
+  // Export: strip out `auth` so the user's password hash is never written to disk.
   const exportData = () => {
-    const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+    const safe = { ...config };
+    delete safe.auth;
+    const blob = new Blob([JSON.stringify(safe, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -2230,8 +2569,8 @@ function SettingsTab({ config, saveConfig, showToast }) {
           type="button"
           onClick={async () => {
             if (!window.confirm(t('settings.resetConfirm'))) return;
-            await saveConfig(DEFAULT_CONFIG);
-            showToast(t('settings.resetDone'));
+            const ok = await saveConfig(DEFAULT_CONFIG);
+            if (ok) showToast(t('settings.resetDone'));
           }}
           className="btn-danger px-5 py-2 rounded-xl text-sm"
         >
